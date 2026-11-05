@@ -1,0 +1,31 @@
+{
+  "name": "holoshop-enhance",
+  "description": "shop.hololivepro.com 個人用擴充功能",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "postinstall": "wxt prepare"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "@wxt-dev/module-svelte": "^2.0.5",
+    "fake-indexeddb": "^6.2.7",
+    "happy-dom": "^21.0.4",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.8",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0",
+    "wxt": "^0.21.5"
+  },
+  "dependencies": {
+    "dexie": "^4.4.7",
+    "i18next": "^26.7.1"
+  }
+}

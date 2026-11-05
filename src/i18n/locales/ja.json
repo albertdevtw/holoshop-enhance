@@ -1,0 +1,122 @@
+{
+  "common": {
+    "appName": "holoshop-enhance",
+    "account": "アカウント",
+    "notLoggedIn": "ログインしていません",
+    "pleaseLogin": "ショップにログインしてください",
+    "noAccountYet": "ショップを開いてログインすると利用できます"
+  },
+  "sidepanel": {
+    "title": "お気に入り",
+    "empty": "お気に入りはまだありません",
+    "tabFavorites": "お気に入り（{{count}}）",
+    "tabUnfulfilled": "未発送（{{count}}）",
+    "openSettings": "設定を開く"
+  },
+  "options": {
+    "title": "設定",
+    "language": "表示言語",
+    "localeMode": {
+      "follow-site": "サイトに合わせる",
+      "ja": "日本語",
+      "en": "English",
+      "zh-TW": "繁體中文"
+    },
+    "reminderSection": "締切リマインダー",
+    "daysBefore": "締切の何日前から通知するか",
+    "collectionSection": "商品一覧",
+    "autoLoadMore": "一番下までスクロールしたら自動で続きを読み込む",
+    "disclaimer": "非公式・個人利用限定"
+  },
+  "product": {
+    "favoriteAdd": "お気に入りに追加",
+    "favoriteRemove": "お気に入りから削除",
+    "loginRequired": "ログインするとお気に入りに追加できます",
+    "error": "保存できませんでした。ページを再読み込みしてください",
+    "purchased": "購入済み {{count}} 点",
+    "purchasedVariant": "購入済み ×{{count}}"
+  },
+  "list": {
+    "deadline": "締切",
+    "daysLeft": "あと {{count}} 日",
+    "dueToday": "本日締切",
+    "ended": "販売終了",
+    "noPeriod": "販売期間の情報なし",
+    "remove": "削除",
+    "openProduct": "商品ページを開く",
+    "filterUnpurchased": "未購入",
+    "filterPurchased": "購入済み",
+    "filterAll": "すべて",
+    "showExpired": "販売終了を表示",
+    "purchasedCount": "購入済み {{count}} 点",
+    "mute": "このリマインダーを停止",
+    "unmute": "リマインダーを再開"
+  },
+  "sync": {
+    "runningPages": "注文を同期中 {{done}} / {{total}} ページ",
+    "running": "注文を同期中…",
+    "done": "同期完了：新規注文 {{count}} 件",
+    "needsLogin": "同期失敗：ショップに再ログインしてください",
+    "error": "同期に失敗しました。しばらくしてから再度お試しください",
+    "lastSync": "最終同期：{{time}}",
+    "never": "まだ同期していません",
+    "now": "今すぐ同期",
+    "full": "すべて再同期",
+    "noTab": "ショップのページを開いてから同期してください",
+    "goLogin": "ログインページへ",
+    "showOnIcon": "アイコンに同期状態を表示",
+    "section": "注文の同期"
+  },
+  "reminder": {
+    "badgeTitle": "締切間近のお気に入り {{count}} 件"
+  },
+  "data": {
+    "section": "データ",
+    "exportActive": "現在のアカウントを書き出す",
+    "exportAll": "すべてのアカウントを書き出す",
+    "nothingToExport": "書き出すデータがありません",
+    "import": "ファイルから読み込む",
+    "importPreview": "次のデータを読み込みます（新しいデータは上書きされません）",
+    "importRow": "{{label}}：お気に入り {{favorites}} 件・注文 {{orders}} 件",
+    "otherAccount": "（現在のアカウントではありません）",
+    "importConfirm": "読み込む",
+    "cancel": "キャンセル",
+    "importDone": "読み込みました：お気に入り {{favorites}} 件・注文 {{orders}} 件を更新",
+    "error": {
+      "invalid-json": "ファイルを読み取れませんでした",
+      "not-backup": "holoshop-enhance の書き出しファイルではありません",
+      "newer-version": "新しいバージョンで書き出されたファイルのため読み込めません",
+      "invalid-data": "ファイルの内容が正しくありません"
+    }
+  },
+  "accounts": {
+    "section": "アカウント管理",
+    "current": "現在",
+    "label": "表示名",
+    "delete": "データを削除",
+    "deleteConfirm1": "{{label}} のお気に入りと注文データをすべて削除しますか？",
+    "deleteConfirm2": "削除したデータは元に戻せません。本当に削除しますか？",
+    "empty": "まだアカウントがありません"
+  },
+  "downloads": {
+    "placeholder": "キーワードで検索（スペース区切り）",
+    "loading": "読み込み中… {{pages}} ページ・{{count}} 件",
+    "total": "全 {{total}} 件",
+    "matched": "{{matched}} / 全 {{total}} 件",
+    "failed": "一部のページを読み込めませんでした"
+  },
+  "orders": {
+    "empty": "未発送の注文はありません",
+    "shipBy": "発送予定日",
+    "noShipBy": "発送予定日の情報なし",
+    "daysLeft": "あと {{count}} 日",
+    "dueToday": "本日まで",
+    "overdue": "{{count}} 日超過",
+    "orderDate": "注文日",
+    "orderNumber": "注文番号",
+    "total": "合計",
+    "detail": "注文詳細",
+    "status": "未発送",
+    "quantity": "×{{count}}"
+  }
+}

@@ -1,0 +1,66 @@
+# 推送 v* tag 時：測試、打包 zip，並建立 GitHub Release（D-020）
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: 安裝套件
+        run: pnpm install --frozen-lockfile
+
+      - name: 型別檢查
+        run: pnpm check
+
+      - name: 單元測試
+        run: pnpm test
+
+      - name: 確認 tag 與 package.json 版本一致
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME 與 package.json 版本 v$VERSION 不一致"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: 打包
+        run: pnpm zip
+
+      - name: 擷取發佈說明
+        run: |
+          awk -v ver="## v$VERSION" '
+            index($0, ver) == 1 && (length($0) == length(ver) || substr($0, length(ver) + 1, 1) ~ /[ （(]/) { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' RELEASE-NOTES.md > release-body.md
+          if [ ! -s release-body.md ]; then
+            echo "::error::RELEASE-NOTES.md 找不到 ## v$VERSION 段落"
+            exit 1
+          fi
+
+      - name: 建立 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "output/holoshop-enhance-$VERSION-chrome.zip" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-body.md \
+            --verify-tag

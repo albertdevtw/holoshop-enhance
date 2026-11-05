@@ -1,0 +1,122 @@
+{
+  "common": {
+    "appName": "holoshop-enhance",
+    "account": "Account",
+    "notLoggedIn": "Not logged in",
+    "pleaseLogin": "Please log in to the shop",
+    "noAccountYet": "Open the shop and log in to get started"
+  },
+  "sidepanel": {
+    "title": "Favorites",
+    "empty": "No favorites yet",
+    "tabFavorites": "Favorites ({{count}})",
+    "tabUnfulfilled": "Unfulfilled ({{count}})",
+    "openSettings": "Open settings"
+  },
+  "options": {
+    "title": "Settings",
+    "language": "Display language",
+    "localeMode": {
+      "follow-site": "Follow the shop",
+      "ja": "日本語",
+      "en": "English",
+      "zh-TW": "繁體中文"
+    },
+    "reminderSection": "Deadline reminders",
+    "daysBefore": "Days before the deadline to start reminding",
+    "collectionSection": "Product lists",
+    "autoLoadMore": "Automatically load more products when scrolling to the bottom",
+    "disclaimer": "Unofficial — for personal use only"
+  },
+  "product": {
+    "favoriteAdd": "Add to favorites",
+    "favoriteRemove": "Remove from favorites",
+    "loginRequired": "Log in to add favorites",
+    "error": "Could not save. Please reload the page",
+    "purchased": "Purchased {{count}}",
+    "purchasedVariant": "Purchased ×{{count}}"
+  },
+  "list": {
+    "deadline": "Deadline",
+    "daysLeft": "{{count}} days left",
+    "dueToday": "Ends today",
+    "ended": "Ended",
+    "noPeriod": "No sales period info",
+    "remove": "Remove",
+    "openProduct": "Open product page",
+    "filterUnpurchased": "Not purchased",
+    "filterPurchased": "Purchased",
+    "filterAll": "All",
+    "showExpired": "Show ended",
+    "purchasedCount": "Purchased {{count}}",
+    "mute": "Stop reminders for this item",
+    "unmute": "Resume reminders"
+  },
+  "sync": {
+    "runningPages": "Syncing orders {{done}} / {{total}} pages",
+    "running": "Syncing orders…",
+    "done": "Sync complete: {{count}} new orders",
+    "needsLogin": "Sync failed: please log in to the shop again",
+    "error": "Sync failed. Please try again later",
+    "lastSync": "Last synced: {{time}}",
+    "never": "Not synced yet",
+    "now": "Sync now",
+    "full": "Full resync",
+    "noTab": "Open a shop page before syncing",
+    "goLogin": "Go to login",
+    "showOnIcon": "Show sync status on the icon",
+    "section": "Order sync"
+  },
+  "reminder": {
+    "badgeTitle": "{{count}} favorites ending soon"
+  },
+  "data": {
+    "section": "Data",
+    "exportActive": "Export current account",
+    "exportAll": "Export all accounts",
+    "nothingToExport": "Nothing to export",
+    "import": "Import from file",
+    "importPreview": "The following data will be imported (newer local data is kept)",
+    "importRow": "{{label}}: {{favorites}} favorites, {{orders}} orders",
+    "otherAccount": "(not the current account)",
+    "importConfirm": "Import",
+    "cancel": "Cancel",
+    "importDone": "Imported: updated {{favorites}} favorites and {{orders}} orders",
+    "error": {
+      "invalid-json": "Could not read the file",
+      "not-backup": "This is not a holoshop-enhance export file",
+      "newer-version": "This file was exported by a newer version and cannot be imported",
+      "invalid-data": "The file contents are invalid"
+    }
+  },
+  "accounts": {
+    "section": "Accounts",
+    "current": "Current",
+    "label": "Display name",
+    "delete": "Delete data",
+    "deleteConfirm1": "Delete all favorites and order data for {{label}}?",
+    "deleteConfirm2": "Deleted data cannot be restored. Are you sure?",
+    "empty": "No accounts yet"
+  },
+  "downloads": {
+    "placeholder": "Search by keywords (space separated)",
+    "loading": "Loading… {{pages}} pages, {{count}} items",
+    "total": "{{total}} items",
+    "matched": "{{matched}} of {{total}} items",
+    "failed": "Some pages could not be loaded"
+  },
+  "orders": {
+    "empty": "No unfulfilled orders",
+    "shipBy": "Shipping period",
+    "noShipBy": "No shipping date info",
+    "daysLeft": "{{count}} days left",
+    "dueToday": "Due today",
+    "overdue": "{{count}} days overdue",
+    "orderDate": "Order date",
+    "orderNumber": "Order number",
+    "total": "Total",
+    "detail": "Order details",
+    "status": "Unfulfilled",
+    "quantity": "×{{count}}"
+  }
+}

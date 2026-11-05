@@ -1,0 +1,25 @@
+:root {
+  --hs-bg: #ffffff;
+  --hs-fg: #1f2328;
+  --hs-muted: #656d76;
+  --hs-border: #d0d7de;
+  --hs-accent: #e5487a;
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Noto Sans TC', sans-serif;
+  font-size: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hs-bg: #1c1f24;
+    --hs-fg: #e6edf3;
+    --hs-muted: #9198a1;
+    --hs-border: #3d444d;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--hs-bg);
+  color: var(--hs-fg);
+}

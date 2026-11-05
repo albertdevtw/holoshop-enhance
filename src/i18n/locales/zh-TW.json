@@ -1,0 +1,122 @@
+{
+  "common": {
+    "appName": "holoshop-enhance",
+    "account": "帳號",
+    "notLoggedIn": "未登入",
+    "pleaseLogin": "請先登入商店",
+    "noAccountYet": "開啟商店並登入後即可使用"
+  },
+  "sidepanel": {
+    "title": "最愛",
+    "empty": "還沒有最愛的商品",
+    "tabFavorites": "最愛（{{count}}）",
+    "tabUnfulfilled": "未發送（{{count}}）",
+    "openSettings": "開啟設定"
+  },
+  "options": {
+    "title": "設定",
+    "language": "介面語系",
+    "localeMode": {
+      "follow-site": "跟隨網站",
+      "ja": "日本語",
+      "en": "English",
+      "zh-TW": "繁體中文"
+    },
+    "reminderSection": "截止提醒",
+    "daysBefore": "截止前幾天開始提醒",
+    "collectionSection": "商品列表",
+    "autoLoadMore": "捲到底時自動載入更多商品",
+    "disclaimer": "非官方，僅限個人使用"
+  },
+  "product": {
+    "favoriteAdd": "加入最愛",
+    "favoriteRemove": "從最愛移除",
+    "loginRequired": "登入後即可加入最愛",
+    "error": "無法儲存，請重新整理頁面",
+    "purchased": "已購買 {{count}} 件",
+    "purchasedVariant": "已購買 ×{{count}}"
+  },
+  "list": {
+    "deadline": "截止",
+    "daysLeft": "剩 {{count}} 天",
+    "dueToday": "今天截止",
+    "ended": "已截止",
+    "noPeriod": "無販售期間資訊",
+    "remove": "移除",
+    "openProduct": "開啟商品頁",
+    "filterUnpurchased": "未購買",
+    "filterPurchased": "已購買",
+    "filterAll": "全部",
+    "showExpired": "顯示已截止",
+    "purchasedCount": "已購買 {{count}} 件",
+    "mute": "停止這件商品的提醒",
+    "unmute": "恢復提醒"
+  },
+  "sync": {
+    "runningPages": "訂單同步中 {{done}} / {{total}} 頁",
+    "running": "訂單同步中…",
+    "done": "同步完成：新增 {{count}} 筆訂單",
+    "needsLogin": "同步失敗：請重新登入商店",
+    "error": "同步失敗，請稍後再試",
+    "lastSync": "上次同步：{{time}}",
+    "never": "尚未同步",
+    "now": "立即同步",
+    "full": "完整重新同步",
+    "noTab": "請先開啟商店頁面再同步",
+    "goLogin": "前往登入",
+    "showOnIcon": "在圖示顯示同步狀態",
+    "section": "訂單同步"
+  },
+  "reminder": {
+    "badgeTitle": "即將截止的最愛 {{count}} 件"
+  },
+  "data": {
+    "section": "資料",
+    "exportActive": "匯出目前帳號",
+    "exportAll": "匯出全部帳號",
+    "nothingToExport": "沒有可匯出的資料",
+    "import": "從檔案匯入",
+    "importPreview": "將匯入以下資料（本機較新的資料不會被覆蓋）",
+    "importRow": "{{label}}：最愛 {{favorites}} 件、訂單 {{orders}} 筆",
+    "otherAccount": "（不是目前帳號）",
+    "importConfirm": "匯入",
+    "cancel": "取消",
+    "importDone": "匯入完成：更新最愛 {{favorites}} 件、訂單 {{orders}} 筆",
+    "error": {
+      "invalid-json": "無法讀取檔案",
+      "not-backup": "這不是 holoshop-enhance 的匯出檔",
+      "newer-version": "這個檔案由較新版本匯出，無法匯入",
+      "invalid-data": "檔案內容不正確"
+    }
+  },
+  "accounts": {
+    "section": "帳號管理",
+    "current": "目前",
+    "label": "顯示名稱",
+    "delete": "刪除資料",
+    "deleteConfirm1": "要刪除 {{label}} 的所有最愛與訂單資料嗎？",
+    "deleteConfirm2": "刪除後無法復原，確定要刪除嗎？",
+    "empty": "還沒有帳號"
+  },
+  "downloads": {
+    "placeholder": "輸入關鍵字搜尋（以空白分隔）",
+    "loading": "載入中… {{pages}} 頁・{{count}} 件",
+    "total": "全 {{total}} 件",
+    "matched": "符合 {{matched}} / 全 {{total}} 件",
+    "failed": "部分頁面無法載入"
+  },
+  "orders": {
+    "empty": "沒有未發送的訂單",
+    "shipBy": "發送予定日",
+    "noShipBy": "無發送予定日資訊",
+    "daysLeft": "剩 {{count}} 天",
+    "dueToday": "今天到期",
+    "overdue": "超過 {{count}} 天",
+    "orderDate": "訂購日",
+    "orderNumber": "訂單號",
+    "total": "合計",
+    "detail": "訂單詳細",
+    "status": "未發送",
+    "quantity": "×{{count}}"
+  }
+}
