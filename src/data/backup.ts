@@ -1,5 +1,5 @@
 // 匯出／匯入（05-features F8、04-data-model §5）
-import type { Favorite, Order, OrderItem, OrderStatus, UserDb } from './db';
+import type { Favorite, Order, OrderItem, OrderStatus, ProductHandle, ProductInfo, SharedDb, UserDb } from './db';
 import { GLOBAL_SCHEMA_VERSION, type AccountInfo } from './global';
 import { withProductIds } from './purchases';
 
@@ -12,11 +12,18 @@ export interface BackupAccount {
   orders: Order[];
 }
 
+/** 匯出帳號用到的共用商品資訊（D-024）；舊備份沒有此欄位 */
+export interface BackupShared {
+  products: ProductInfo[];
+  productHandles: ProductHandle[];
+}
+
 export interface BackupFile {
   app: typeof BACKUP_APP;
   schemaVersion: number;
   exportedAt: string;
   accounts: BackupAccount[];
+  shared?: BackupShared;
 }
 
 export type BackupError = 'invalid-json' | 'not-backup' | 'newer-version' | 'invalid-data';
@@ -33,8 +40,52 @@ export async function exportAccount(db: UserDb, account: AccountInfo): Promise<B
   return { customerId: account.customerId, label: account.label, favorites, orders };
 }
 
-export function buildBackup(accounts: BackupAccount[], now: Date): BackupFile {
-  return { app: BACKUP_APP, schemaVersion: GLOBAL_SCHEMA_VERSION, exportedAt: now.toISOString(), accounts };
+export function buildBackup(accounts: BackupAccount[], now: Date, shared?: BackupShared): BackupFile {
+  return {
+    app: BACKUP_APP,
+    schemaVersion: GLOBAL_SCHEMA_VERSION,
+    exportedAt: now.toISOString(),
+    accounts,
+    ...(shared ? { shared } : {}),
+  };
+}
+
+/** 匯出帳號的訂單品項與最愛用到的共用商品資訊（D-024） */
+export async function exportShared(shared: SharedDb, accounts: BackupAccount[]): Promise<BackupShared> {
+  const handles = new Set<string>();
+  const ids = new Set<number>();
+  for (const account of accounts) {
+    for (const order of account.orders) {
+      for (const item of order.items) {
+        handles.add(item.handle);
+        if (item.productId !== null) ids.add(item.productId);
+      }
+    }
+    for (const favorite of account.favorites) {
+      handles.add(favorite.handle);
+      ids.add(favorite.productId);
+    }
+  }
+  const productHandles = (await shared.productHandles.bulkGet([...handles])).filter((h): h is ProductHandle => !!h);
+  for (const h of productHandles) if (h.productId !== null) ids.add(h.productId);
+  const products = (await shared.products.bulkGet([...ids])).filter((p): p is ProductInfo => !!p);
+  return { products, productHandles };
+}
+
+/** 合併共用商品資訊：同一主鍵以 fetchedAt 較新者為準；回傳寫入筆數 */
+export async function importShared(db: SharedDb, data: BackupShared): Promise<number> {
+  const newer = <T extends { fetchedAt: string }>(existing: (T | undefined)[], incoming: T[]) =>
+    incoming.filter((item, i) => {
+      const current = existing[i];
+      return !current || new Date(item.fetchedAt).getTime() > new Date(current.fetchedAt).getTime();
+    });
+  return db.transaction('rw', db.products, db.productHandles, async () => {
+    const products = newer(await db.products.bulkGet(data.products.map((p) => p.productId)), data.products);
+    const handles = newer(await db.productHandles.bulkGet(data.productHandles.map((h) => h.handle)), data.productHandles);
+    await db.products.bulkPut(products);
+    await db.productHandles.bulkPut(handles);
+    return products.length + handles.length;
+  });
 }
 
 /** 匯出檔名：holoshop-enhance-yyyyMMdd-HHmm.json（本機時間） */
@@ -111,6 +162,27 @@ function validOrder(v: unknown): v is Order {
   );
 }
 
+const isStringArray = (v: unknown): boolean => v === undefined || (Array.isArray(v) && v.every(isText));
+
+function validProduct(v: unknown): v is ProductInfo {
+  return (
+    isObject(v) &&
+    isId(v.productId) &&
+    isNonEmptyText(v.handle) &&
+    Array.isArray(v.variants) &&
+    v.variants.every((x: unknown) => isObject(x) && isId(x.id) && isText(x.title)) &&
+    (v.vendor === undefined || isText(v.vendor)) &&
+    isStringArray(v.talents) &&
+    isStringArray(v.groups) &&
+    isStringArray(v.generations) &&
+    isDate(v.fetchedAt)
+  );
+}
+
+function validProductHandle(v: unknown): v is ProductHandle {
+  return isObject(v) && isNonEmptyText(v.handle) && (v.productId === null || isId(v.productId)) && isDate(v.fetchedAt);
+}
+
 /** 補上舊匯出檔缺少的欄位；productIds 由品項重新計算，不採用檔案中的值 */
 function normalizeOrder(order: Order): Order {
   return withProductIds({
@@ -153,6 +225,20 @@ export function parseBackup(text: string): { ok: true; backup: BackupFile } | { 
       orders: a.orders.map(normalizeOrder),
     });
   }
+  let shared: BackupShared | undefined;
+  if (raw.shared !== undefined) {
+    const sh = raw.shared;
+    if (
+      !isObject(sh) ||
+      !Array.isArray(sh.products) ||
+      !Array.isArray(sh.productHandles) ||
+      !sh.products.every(validProduct) ||
+      !sh.productHandles.every(validProductHandle)
+    ) {
+      return { ok: false, error: 'invalid-data' };
+    }
+    shared = { products: sh.products, productHandles: sh.productHandles };
+  }
   return {
     ok: true,
     backup: {
@@ -160,6 +246,7 @@ export function parseBackup(text: string): { ok: true; backup: BackupFile } | { 
       schemaVersion: raw.schemaVersion,
       exportedAt: typeof raw.exportedAt === 'string' ? raw.exportedAt : '',
       accounts,
+      ...(shared ? { shared } : {}),
     },
   };
 }

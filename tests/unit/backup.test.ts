@@ -1,12 +1,14 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Favorite, Order } from '@/src/data/db';
-import { deleteUserDb, openUserDb } from '@/src/data/db';
+import { deleteUserDb, openSharedDb, openUserDb } from '@/src/data/db';
 import {
   backupFileName,
   buildBackup,
   exportAccount,
+  exportShared,
   importAccount,
+  importShared,
   mergeNewer,
   parseBackup,
   summarizeBackup,
@@ -118,5 +120,80 @@ describe('export / import', () => {
     expect(await importAccount(fresh, exported)).toEqual({ favorites: 2, orders: 1 });
     expect(await fresh.favorites.count()).toBe(2);
     expect(await importAccount(fresh, exported)).toEqual({ favorites: 0, orders: 0 });
+  });
+});
+
+describe('共用商品資訊（D-024）', () => {
+  beforeEach(async () => {
+    const shared = openSharedDb();
+    await shared.products.clear();
+    await shared.productHandles.clear();
+  });
+
+  const product = (id: number, handle: string, fetchedAt: string) => ({
+    productId: id,
+    handle,
+    variants: [{ id: id * 10, title: 'A' }],
+    vendor: 'V',
+    talents: ['T'],
+    groups: [],
+    generations: [],
+    fetchedAt,
+  });
+  const item = (handle: string, productId: number | null) => ({
+    handle,
+    productId,
+    productTitle: handle,
+    variantTitleRaw: null,
+    variantId: null,
+    quantity: 1,
+    imageUrl: null,
+    lineTotal: 100,
+  });
+
+  it('只匯出帳號用到的商品（含商品不存在的紀錄），匯入後可還原', async () => {
+    const shared = openSharedDb();
+    const t = '2026-01-01T00:00:00.000Z';
+    await shared.products.bulkPut([product(5, 'a', t), product(6, 'b', t), product(7, 'unused', t)]);
+    await shared.productHandles.bulkPut([
+      { handle: 'a', productId: 5, fetchedAt: t },
+      { handle: 'b', productId: 6, fetchedAt: t },
+      { handle: 'gone', productId: null, fetchedAt: t },
+      { handle: 'unused', productId: 7, fetchedAt: t },
+    ]);
+    const account = {
+      customerId: CID,
+      label: '#0001',
+      favorites: [{ ...fav(6, t), handle: 'b' }],
+      orders: [{ ...order('#1', t), items: [item('a', 5), item('gone', null)], productIds: [5] }],
+    };
+    const data = await exportShared(shared, [account]);
+    expect(data.products.map((p) => p.productId).sort()).toEqual([5, 6]);
+    expect(data.productHandles.map((h) => h.handle).sort()).toEqual(['a', 'b', 'gone']);
+
+    // 匯出檔經過驗證後再匯入到空的共用庫
+    const parsed = parseBackup(JSON.stringify(buildBackup([account], new Date(t), data)));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    await shared.products.clear();
+    await shared.productHandles.clear();
+    expect(await importShared(shared, parsed.backup.shared!)).toBe(5);
+    expect((await shared.products.get(5))?.talents).toEqual(['T']);
+    expect((await shared.productHandles.get('gone'))?.productId).toBeNull();
+  });
+
+  it('本機較新的商品資訊不被覆蓋', async () => {
+    const shared = openSharedDb();
+    await shared.products.put({ ...product(5, 'a', '2026-02-01T00:00:00.000Z'), vendor: 'local' });
+    const written = await importShared(shared, { products: [product(5, 'a', '2026-01-01T00:00:00.000Z')], productHandles: [] });
+    expect(written).toBe(0);
+    expect((await shared.products.get(5))?.vendor).toBe('local');
+  });
+
+  it('沒有 shared 的舊備份仍可匯入；不合法的商品資訊拒絕整個檔案', () => {
+    const base = buildBackup([{ customerId: CID, label: '#0001', favorites: [], orders: [] }], new Date());
+    expect(parseBackup(JSON.stringify(base)).ok).toBe(true);
+    const bad = { ...base, shared: { products: [{ productId: 'x', handle: 'a', variants: [], fetchedAt: 'bad' }], productHandles: [] } };
+    expect(parseBackup(JSON.stringify(bad))).toEqual({ ok: false, error: 'invalid-data' });
   });
 });

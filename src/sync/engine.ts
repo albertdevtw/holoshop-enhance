@@ -149,6 +149,18 @@ async function applyLookup(db: UserDb, lookup: ProductLookup, now: Date): Promis
   });
 }
 
+/**
+ * 匯入等方式寫入訂單後：有需要網站請求才能補齊的資料（商品資訊、訂單明細）時，
+ * 要求下一次同步執行解析階段；回傳是否已要求
+ */
+export async function requestResolveIfNeeded(db: UserDb, shared: SharedDb, now: Date): Promise<boolean> {
+  const meta = await getSyncMeta(db);
+  const task = await nextTask(db, shared, { ...meta, phase: 'resolve' }, now);
+  if (!task || meta.state === 'running' || meta.requested) return task !== null;
+  await setSyncMeta(db, { ...meta, requested: 'resolve' });
+  return true;
+}
+
 /** 寫入一批訂單（同步或被動擷取）；回傳新訂單數與是否整批都已存在 */
 export async function ingestOrders(
   db: UserDb,

@@ -8,6 +8,7 @@ import {
   getSyncMeta,
   nextTask,
   prepareRun,
+  requestResolveIfNeeded,
   setSyncMeta,
   shouldSync,
   startRun,
@@ -222,6 +223,27 @@ describe('sync engine', () => {
     const o2 = await db.orders.get('#1000002');
     expect(o2?.items[0]).toMatchObject({ productId: 2000000002, variantId: 3000000003 });
     expect(o2?.productIds).toEqual([2000000002]);
+  });
+
+  it('匯入後缺少商品資訊時要求解析同步，資料齊全時不要求', async () => {
+    const db = openUserDb(CID);
+    const shared = openSharedDb();
+    // 模擬匯入：訂單已有 productId 與明細，但共用商品庫是空的
+    let meta = startRun(defaultSyncMeta(), now);
+    meta = await step(meta, { kind: 'page', page: 1, orders: [parsed.orders[1]!], lastPage: 1 });
+    meta = await step(meta, { kind: 'detail', orderNumber: '#1000002', items: [] });
+    await setSyncMeta(db, finishRun(meta, now));
+    const order = (await db.orders.get('#1000002'))!;
+    await db.orders.put({ ...order, items: order.items.map((i) => ({ ...i, productId: 2000000002 })), productIds: [2000000002] });
+
+    expect(await requestResolveIfNeeded(db, shared, now)).toBe(true);
+    expect((await getSyncMeta(db)).requested).toBe('resolve');
+
+    await setSyncMeta(db, { ...(await getSyncMeta(db)), requested: null });
+    await shared.productHandles.put({ handle: 'sample_set_2026', productId: 2000000002, fetchedAt: now.toISOString() });
+    await shared.products.put({ productId: 2000000002, handle: 'sample_set_2026', variants: [], vendor: '', fetchedAt: now.toISOString() });
+    expect(await requestResolveIfNeeded(db, shared, now)).toBe(false);
+    expect((await getSyncMeta(db)).requested).toBeNull();
   });
 
   it('需要重新登入時停止並記錄狀態', async () => {

@@ -1,6 +1,6 @@
 // Service Worker：中央調度、帳號切換、資料寫入、同步指派、圖示徽章
 import { getGlobalState, updateGlobalState, type GlobalState, type Settings } from '@/src/data/global';
-import { buildBackup, exportAccount, importAccount, parseBackup } from '@/src/data/backup';
+import { buildBackup, exportAccount, exportShared, importAccount, importShared, parseBackup } from '@/src/data/backup';
 import { deleteUserDb, openSharedDb, openUserDb, type UserDb } from '@/src/data/db';
 import {
   getFavorite,
@@ -20,6 +20,7 @@ import {
   ingestOrders,
   nextTask,
   prepareRun,
+  requestResolveIfNeeded,
   setSyncMeta,
   shouldSync,
 } from '@/src/sync/engine';
@@ -196,17 +197,22 @@ async function handleMessage(message: Message, sender: Sender): Promise<Response
           return info ? [exportAccount(openUserDb(id), info)] : [];
         }),
       );
-      return accounts.length ? buildBackup(accounts, now) : null;
+      return accounts.length ? buildBackup(accounts, now, await exportShared(openSharedDb(), accounts)) : null;
     }
     case 'importData': {
       // 寫入前再驗證一次，不信任傳入的資料（code-review CR-004）
       const parsed = parseBackup(JSON.stringify(message.backup));
       if (!parsed.ok) throw new Error(`invalid backup: ${parsed.error}`);
       const backup = parsed.backup;
+      // 先合併共用商品資訊，之後判斷是否還需要同步時才看得到（D-024）
+      if (backup.shared) await importShared(openSharedDb(), backup.shared);
       const results = [];
       for (const account of backup.accounts) {
-        const written = await importAccount(openUserDb(account.customerId), account);
+        const db = openUserDb(account.customerId);
+        const written = await importAccount(db, account);
         results.push({ customerId: account.customerId, ...written });
+        // 備份不含共用的商品資訊；缺少時要求下一次同步補齊（タレント別統計需要）
+        await requestResolveIfNeeded(db, openSharedDb(), now);
       }
       const iso = now.toISOString();
       const state = await updateGlobalState((s) => {
@@ -214,7 +220,10 @@ async function handleMessage(message: Message, sender: Sender): Promise<Response
           s.accounts[a.customerId] ??= { customerId: a.customerId, label: a.label, firstSeenAt: iso, lastSeenAt: iso };
         }
       });
-      if (state.activeAccountId) await broadcast({ type: 'purchasesChanged', customerId: state.activeAccountId });
+      if (state.activeAccountId) {
+        await broadcast({ type: 'purchasesChanged', customerId: state.activeAccountId });
+        await broadcast({ type: 'syncAvailable' });
+      }
       return results;
     }
     case 'renameAccount':
