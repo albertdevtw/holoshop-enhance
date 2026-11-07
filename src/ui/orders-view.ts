@@ -1,5 +1,6 @@
 // 未発送訂單清單的排序與顯示用計算（05-features F12；純函式，便於測試）
 import type { Order } from '@/src/data/db';
+import { isPendingShipment } from '@/src/data/purchases';
 import type { UiLocale } from '@/src/i18n';
 
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -54,10 +55,7 @@ export function sortUnfulfilled<T extends Order>(list: T[]): T[] {
 export type OrderFilter = 'unfulfilled' | 'fulfilled' | 'all';
 export const ORDER_FILTERS: OrderFilter[] = ['unfulfilled', 'fulfilled', 'all'];
 
-/** 還有品項未出貨（未発送＋部分發送） */
-export function isPendingShipment(order: Order): boolean {
-  return order.status === 'unfulfilled' || order.status === 'partial';
-}
+export { isPendingShipment };
 
 /** 有訂單的年份（新到舊） */
 export function orderYears(orders: Order[]): string[] {

@@ -15,6 +15,8 @@
     category,
     name,
     title,
+    incompleteOrders,
+    pendingOrders,
     onback,
   }: {
     t: TFunction;
@@ -28,6 +30,8 @@
     name: string;
     /** 顯示用的列名（固定列已翻譯） */
     title: string;
+    incompleteOrders: number;
+    pendingOrders: number;
     onback: () => void;
   } = $props();
 
@@ -91,8 +95,15 @@
     </table>
   </div>
 {/if}
+{#if pendingOrders > 0}<p class="note">{t('stats.talent.pending', { count: pendingOrders })}</p>{/if}
+{#if incompleteOrders > 0}<p class="note">{t('stats.talent.incomplete', { count: incompleteOrders })}</p>{/if}
 
 <style>
+  .note {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #9a6700;
+  }
   .head {
     display: flex;
     flex-wrap: wrap;

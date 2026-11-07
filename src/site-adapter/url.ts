@@ -39,3 +39,17 @@ export function parsePageUrl(input: string | URL): PageInfo | null {
   if (/^\/account\/?$/.test(path)) return { locale, type: 'account' };
   return { locale, type: 'other' };
 }
+
+/**
+ * 訂單詳細頁路徑是否合法：`/account/orders/<token>` 或 `/en/account/orders/<token>`，且只在商店網域
+ * （匯入與同步抓詳細頁前使用，避免向外部網站發出請求；code-review CR-007）
+ */
+export function isOrderDetailPath(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\/(?:en\/)?account\/orders\/[A-Za-z0-9_-]+\/?$/.test(value)) return false;
+  try {
+    const url = new URL(value, SITE_ORIGIN);
+    return url.origin === SITE_ORIGIN && url.pathname === value;
+  } catch {
+    return false;
+  }
+}

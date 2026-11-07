@@ -1,7 +1,8 @@
 // 同步狀態機（只在 Service Worker 中使用）：決定下一個工作、套用結果（03-architecture §3.2）
 import type { Order, SharedDb, UserDb } from '@/src/data/db';
-import { applyDetail, needsDetail, resolveItem, toOrder, withProductIds, type ProductLookup } from '@/src/data/purchases';
+import { applyDetail, isPendingShipment, needsDetail, resolveItem, toOrder, withProductIds, type ProductLookup } from '@/src/data/purchases';
 import type { ParsedOrder } from '@/src/site-adapter/orders-page';
+import { isOrderDetailPath } from '@/src/site-adapter/url';
 import {
   AUTO_SYNC_INTERVAL_MS,
   defaultSyncMeta,
@@ -70,7 +71,8 @@ export function isOlderOrSame(a: { date: string; orderNumber: string }, b: { dat
 
 /** 本機最舊的未発送訂單（增量同步的涵蓋目標，D-018） */
 export async function oldestUnfulfilled(db: UserDb): Promise<{ date: string; orderNumber: string } | null> {
-  const orders = await db.orders.filter((o) => o.status === 'unfulfilled').toArray();
+  // 部分出貨也還有品項待出貨，同樣需要涵蓋（code-review CR-009）
+  const orders = await db.orders.filter(isPendingShipment).toArray();
   let oldest: { date: string; orderNumber: string } | null = null;
   for (const o of orders) {
     if (!oldest || isOlderOrSame(o, oldest)) oldest = { date: o.date, orderNumber: o.orderNumber };
@@ -102,7 +104,8 @@ export async function nextTask(db: UserDb, shared: SharedDb, meta: SyncMeta, now
   const orders = await applyLookup(db, lookup, now);
 
   // 先取得訂單明細，再取得商品資訊（D-022）
-  const pending = orders.find(needsDetail);
+  // 路徑不合法的訂單不抓詳細頁（code-review CR-007）
+  const pending = orders.find((o) => needsDetail(o) && isOrderDetailPath(o.detailPath));
   if (pending) return { kind: 'detail', orderNumber: pending.orderNumber, path: pending.detailPath };
 
   const retryable = (handle: string) => {
@@ -154,11 +157,22 @@ async function applyLookup(db: UserDb, lookup: ProductLookup, now: Date): Promis
  * 要求下一次同步執行解析階段；回傳是否已要求
  */
 export async function requestResolveIfNeeded(db: UserDb, shared: SharedDb, now: Date): Promise<boolean> {
-  const meta = await getSyncMeta(db);
-  const task = await nextTask(db, shared, { ...meta, phase: 'resolve' }, now);
-  if (!task || meta.state === 'running' || meta.requested) return task !== null;
-  await setSyncMeta(db, { ...meta, requested: 'resolve' });
+  const task = await nextTask(db, shared, { ...defaultSyncMeta(), phase: 'resolve' }, now);
+  if (!task) return false;
+  // 在交易內重新讀取最新狀態，避免覆蓋期間開始的同步或其他要求（code-review CR-012）
+  await db.transaction('rw', db.meta, async () => {
+    const current = await getSyncMeta(db);
+    if (current.state !== 'running' && !current.requested) await setSyncMeta(db, { ...current, requested: 'resolve' });
+  });
   return true;
+}
+
+/** 使用者要求同步：在交易內讀取並更新，保留進行中的同步狀態（code-review CR-012） */
+export async function requestSyncMode(db: UserDb, mode: SyncMode): Promise<void> {
+  await db.transaction('rw', db.meta, async () => {
+    const current = await getSyncMeta(db);
+    await setSyncMeta(db, { ...current, requested: mode, state: current.state === 'running' ? current.state : 'idle' });
+  });
 }
 
 /** 寫入一批訂單（同步或被動擷取）；回傳新訂單數與是否整批都已存在 */

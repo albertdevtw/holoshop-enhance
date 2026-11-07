@@ -52,8 +52,13 @@
     if (summary.years.length && (!year || !summary.years.includes(year))) year = summary.years[0] ?? null;
   });
 
+  // 只套用最新一次讀取的結果，避免切換帳號時較晚返回的舊回應覆蓋畫面（code-review CR-011）
+  let latestRequest = 0;
+
   async function load() {
-    const res = await sendMessage({ type: 'listOrders' });
+    const request = ++latestRequest;
+    const res = await sendMessage({ type: 'listOrders', withProducts: true });
+    if (request !== latestRequest) return;
     customerId = res?.customerId ?? null;
     orders = res?.orders ?? [];
     products = new Map((res?.products ?? []).map((p) => [p.productId, p]));
@@ -102,7 +107,12 @@
 
   // 切換帳號時重新載入
   $effect(() => {
-    if ($globalState && loaded && $globalState.activeAccountId !== customerId) void load();
+    if ($globalState && loaded && $globalState.activeAccountId !== customerId) {
+      // 先清除舊帳號的統計，避免新資料載入前被誤認
+      orders = [];
+      products = new Map();
+      void load();
+    }
   });
 </script>
 

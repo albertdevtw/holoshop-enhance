@@ -5,6 +5,7 @@ import { identityFromDocument } from '@/src/site-adapter/identity';
 import { parseOrderDetail } from '@/src/site-adapter/order-detail';
 import { parseOrdersPage } from '@/src/site-adapter/orders-page';
 import { parseProductJson, productJsonPath } from '@/src/site-adapter/product-json';
+import { isOrderDetailPath } from '@/src/site-adapter/url';
 import { REQUEST_INTERVAL_MS, type SyncResult, type SyncTask } from './types';
 
 const LOG = '[holoshop]';
@@ -84,6 +85,8 @@ async function executeTask(task: SyncTask, customerId: string): Promise<SyncResu
         return { kind: 'product', handle: task.handle, product };
       }
       case 'detail': {
+        // 只抓商店網域的訂單詳細頁（code-review CR-007）
+        if (!isOrderDetailPath(task.path)) return { kind: 'error', reason: 'parse' };
         const doc = await fetchAccountDocument(task.path, customerId);
         if (!(doc instanceof Document)) return doc;
         return { kind: 'detail', orderNumber: task.orderNumber, items: parseOrderDetail(doc) };

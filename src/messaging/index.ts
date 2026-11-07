@@ -54,6 +54,8 @@ export interface ListFavoritesMessage {
 /** Side Panel 訂單分頁與統計頁：目前帳號的全部訂單（F13、F15） */
 export interface ListOrdersMessage {
   type: 'listOrders';
+  /** 一併回傳訂單用到的商品資訊（統計頁需要；Side Panel 不需要） */
+  withProducts?: boolean;
 }
 
 export interface RemoveFavoriteMessage {

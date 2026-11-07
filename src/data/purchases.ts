@@ -84,6 +84,11 @@ export function applyDetail(order: Order, detail: ParsedDetailItem[], now: strin
   return { ...order, items, detailFetchedAt: now, updatedAt: now };
 }
 
+/** 還有品項未出貨（未発送＋部分發送）；同步的涵蓋目標與訂單分頁共用（F15、code-review CR-009） */
+export function isPendingShipment(order: Pick<Order, 'status'>): boolean {
+  return order.status === 'unfulfilled' || order.status === 'partial';
+}
+
 /** 是否需要抓詳細頁：未取消，且尚未抓過或有品項還沒有小計（D-022） */
 export function needsDetail(order: Order): boolean {
   if (order.status === 'cancelled') return false;

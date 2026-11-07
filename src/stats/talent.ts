@@ -72,6 +72,8 @@ export interface TalentSummary {
   total: number;
   /** 尚未取得明細的訂單數 */
   pendingOrders: number;
+  /** 明細不完整（部分品項未計入）的訂單數 */
+  incompleteOrders: number;
   /** 有品項的幣別沒有匯率而未計入 */
   partial: boolean;
   /** 有訂單的年份（新到舊） */
@@ -80,6 +82,8 @@ export interface TalentSummary {
 
 interface ScanResult {
   pendingOrders: number;
+  /** 已取得明細但部分品項沒有小計（或沒有幣別）的訂單數；這些品項未計入（code-review CR-008） */
+  incompleteOrders: number;
   partial: boolean;
   years: string[];
 }
@@ -97,9 +101,11 @@ function scanItems(
   const years = [...new Set(active.map((o) => o.date.slice(0, 4)))].sort().reverse();
   const inRange = year ? active.filter((o) => o.date.startsWith(year)) : active;
   let pendingOrders = 0;
+  let incompleteOrders = 0;
   let partial = false;
   for (const order of inRange) {
     if (order.items.some((i) => i.lineTotal === undefined)) pendingOrders += 1;
+    else if (hasUnavailableTotals(order)) incompleteOrders += 1;
     const currency = order.total?.currency;
     for (const item of order.items) {
       if (typeof item.lineTotal !== 'number' || !currency) continue;
@@ -113,7 +119,13 @@ function scanItems(
       visit(order, item, amount, classifyProduct(product, variantTitle));
     }
   }
-  return { pendingOrders, partial, years };
+  return { pendingOrders, incompleteOrders, partial, years };
+}
+
+/** 已取得明細，但有品項的小計缺失、明細沒有任何品項、或訂單沒有幣別 */
+export function hasUnavailableTotals(order: Order): boolean {
+  if (!order.detailFetchedAt) return false;
+  return !order.total?.currency || order.items.length === 0 || order.items.some((i) => i.lineTotal === null);
 }
 
 export function summarizeByTalent(
@@ -124,7 +136,7 @@ export function summarizeByTalent(
   rates: Record<string, number>,
 ): TalentSummary {
   const map = new Map<string, TalentRow>();
-  const { pendingOrders, partial, years } = scanItems(orders, products, year, base, rates, (_order, item, amount, c) => {
+  const { pendingOrders, incompleteOrders, partial, years } = scanItems(orders, products, year, base, rates, (_order, item, amount, c) => {
     const key = `${c.category}\u0000${c.name}`;
     const row = map.get(key) ?? { ...c, amount: 0, quantity: 0 };
     row.amount += amount;
@@ -146,7 +158,7 @@ export function summarizeByTalent(
     TALENT_CATEGORIES.reduce((sum, c) => sum + subtotals[c], 0),
     base,
   );
-  return { rows, subtotals, total, pendingOrders, partial, years };
+  return { rows, subtotals, total, pendingOrders, incompleteOrders, partial, years };
 }
 
 export interface TalentDetailRow {

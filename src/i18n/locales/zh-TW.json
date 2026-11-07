@@ -179,7 +179,8 @@
         "unitPrice": "單價",
         "quantity": "數量",
         "total": "合計"
-      }
+      },
+      "incomplete": "明細不完整的訂單：{{count}} 筆（部分商品金額無法取得，未計入統計）"
     }
   }
 }

@@ -21,6 +21,7 @@ import {
   nextTask,
   prepareRun,
   requestResolveIfNeeded,
+  requestSyncMode,
   setSyncMeta,
   shouldSync,
 } from '@/src/sync/engine';
@@ -135,6 +136,7 @@ async function handleMessage(message: Message, sender: Sender): Promise<Response
       const { activeAccountId } = await getGlobalState();
       if (!activeAccountId) return { customerId: null, orders: [], products: [] };
       const orders = await openUserDb(activeAccountId).orders.toArray();
+      if (!message.withProducts) return { customerId: activeAccountId, orders, products: [] };
       const ids = [...new Set(orders.flatMap((o) => o.productIds))];
       const products = (await openSharedDb().products.bulkGet(ids)).filter((p) => p !== undefined);
       return { customerId: activeAccountId, orders, products };
@@ -180,9 +182,7 @@ async function handleMessage(message: Message, sender: Sender): Promise<Response
     case 'requestSync': {
       const { activeAccountId } = await getGlobalState();
       if (!activeAccountId) return { hasTab: false };
-      const db = openUserDb(activeAccountId);
-      const meta = await getSyncMeta(db);
-      await setSyncMeta(db, { ...meta, requested: message.mode, state: meta.state === 'running' ? meta.state : 'idle' });
+      await requestSyncMode(openUserDb(activeAccountId), message.mode);
       const tabs = await browser.tabs.query({ url: SHOP_TABS });
       const tab = tabs.find((t) => t.active) ?? tabs[0];
       if (tab?.id !== undefined) await browser.tabs.sendMessage(tab.id, { type: 'syncAvailable' }).catch(() => undefined);

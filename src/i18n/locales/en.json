@@ -179,7 +179,8 @@
         "unitPrice": "Unit price",
         "quantity": "Qty",
         "total": "Total"
-      }
+      },
+      "incomplete": "Orders with incomplete details: {{count}} (some item amounts could not be read and are not included)"
     }
   }
 }

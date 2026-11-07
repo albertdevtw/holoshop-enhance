@@ -152,6 +152,21 @@ describe('summarizeByTalent', () => {
     expect(d.total).toBe(list.rows.talent[0]?.amount);
   });
 
+  it('已取得明細但小計缺失的訂單計為明細不完整（code-review CR-008）', () => {
+    const fetched = (no: string, items: Order['items']) => ({ ...order(no, '2026-07-01', items), detailFetchedAt: '2026-07-02T00:00:00Z' });
+    const s = summarizeByTalent(
+      [fetched('#20', [item(1, null)]), fetched('#21', []), fetched('#22', [item(1, 0)])],
+      products,
+      '2026',
+      'JPY',
+      {},
+    );
+    expect(s.incompleteOrders).toBe(2);
+    expect(s.pendingOrders).toBe(0);
+    // 有效的零元小計照常計入
+    expect(s.rows.talent[0]).toMatchObject({ name: 'AZKi', amount: 0, quantity: 1 });
+  });
+
   it('依年份篩選', () => {
     const s = summarizeByTalent(orders, products, '2025', 'JPY', {});
     expect(s.total).toBe(4800);

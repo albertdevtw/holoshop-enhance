@@ -129,6 +129,8 @@
     category={selected.category}
     name={selected.name}
     title={titleOf(selected)}
+    incompleteOrders={summary.incompleteOrders}
+    pendingOrders={summary.pendingOrders}
     onback={closeDetail}
   />
 {:else}
@@ -182,6 +184,7 @@
 <p class="note">{t('stats.talent.note')}</p>
 {#if summary.partial}<p class="note">{t('stats.partialNote')}</p>{/if}
 {#if summary.pendingOrders > 0}<p class="note pending">{t('stats.talent.pending', { count: summary.pendingOrders })}</p>{/if}
+{#if summary.incompleteOrders > 0}<p class="note pending">{t('stats.talent.incomplete', { count: summary.incompleteOrders })}</p>{/if}
 {/if}
 
 <style>

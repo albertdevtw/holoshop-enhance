@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parsePageUrl } from '@/src/site-adapter/url';
+import { isOrderDetailPath } from '@/src/site-adapter/url';
 
 describe('parsePageUrl', () => {
   it('日文商品頁', () => {
@@ -56,5 +57,27 @@ describe('parsePageUrl', () => {
   it('其他網域或無效網址回傳 null', () => {
     expect(parsePageUrl('https://example.com/products/x')).toBeNull();
     expect(parsePageUrl('not a url')).toBeNull();
+  });
+});
+
+describe('isOrderDetailPath（code-review CR-007）', () => {
+  it('接受商店的訂單詳細頁路徑', () => {
+    expect(isOrderDetailPath('/account/orders/abc123_DEF-9')).toBe(true);
+    expect(isOrderDetailPath('/en/account/orders/abc123')).toBe(true);
+  });
+
+  it('拒絕外部網址、反斜線、路徑穿越與其他路徑', () => {
+    for (const bad of [
+      '//example.invalid/account/orders/x',
+      'https://example.invalid/account/orders/x',
+      '/\\example.invalid/account/orders/x',
+      '/account/orders/../../x',
+      '/account/orders/x?y=1',
+      '/account',
+      '',
+      null,
+    ]) {
+      expect(isOrderDetailPath(bad)).toBe(false);
+    }
   });
 });

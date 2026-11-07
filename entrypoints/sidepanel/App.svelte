@@ -91,8 +91,13 @@
     await browser.tabs.create({ url });
   }
 
+  // 只套用最新一次讀取的結果，避免切換帳號時較晚返回的舊回應覆蓋畫面（code-review CR-011）
+  let latestRequest = 0;
+
   async function load() {
+    const request = ++latestRequest;
     const [fav, list] = await Promise.all([sendMessage({ type: 'listFavorites' }), sendMessage({ type: 'listOrders' })]);
+    if (request !== latestRequest) return;
     customerId = fav?.customerId ?? null;
     favorites = fav?.favorites ?? [];
     orders = list?.orders ?? [];
@@ -112,7 +117,12 @@
 
   // 切換帳號時重新載入
   $effect(() => {
-    if ($globalState && $globalState.activeAccountId !== customerId && loaded) void load();
+    if ($globalState && $globalState.activeAccountId !== customerId && loaded) {
+      // 先清除舊帳號的清單，避免新資料載入前被誤認
+      favorites = [];
+      orders = [];
+      void load();
+    }
   });
 </script>
 

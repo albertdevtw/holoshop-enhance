@@ -71,6 +71,24 @@ describe('parseBackup', () => {
     expect(withOrder({ ...order('#1', '2026-01-01T00:00:00Z'), status: 'shipped' })).toEqual({ ok: false, error: 'invalid-data' });
   });
 
+  it('拒絕外部網址的訂單路徑與重複主鍵（code-review CR-007、CR-010）', () => {
+    const withOrders = (orders: unknown[]) =>
+      parseBackup(JSON.stringify({ ...valid, accounts: [{ ...valid.accounts[0], orders }] }));
+    expect(withOrders([{ ...order('#1', '2026-01-01T00:00:00Z'), detailPath: '//example.invalid/account/orders/x' }])).toEqual({
+      ok: false,
+      error: 'invalid-data',
+    });
+    expect(withOrders([order('#1', '2026-01-01T00:00:00Z'), order('#1', '2026-02-01T00:00:00Z')])).toEqual({
+      ok: false,
+      error: 'invalid-data',
+    });
+    const dupAccounts = { ...valid, accounts: [valid.accounts[0], valid.accounts[0]] };
+    expect(parseBackup(JSON.stringify(dupAccounts))).toEqual({ ok: false, error: 'invalid-data' });
+    const p = { productId: 5, handle: 'a', variants: [], fetchedAt: '2026-01-01T00:00:00Z' };
+    const dupShared = { ...valid, shared: { products: [p, { ...p, fetchedAt: '2026-02-01T00:00:00Z' }], productHandles: [] } };
+    expect(parseBackup(JSON.stringify(dupShared))).toEqual({ ok: false, error: 'invalid-data' });
+  });
+
   it('productIds 由品項重新計算，舊檔缺少的欄位補為 null', () => {
     const { shipBy: _shipBy, ...legacy } = order('#1', '2026-01-01T00:00:00Z');
     const item = { handle: 'a', productId: 5, productTitle: 'A', variantTitleRaw: null, variantId: null, quantity: 1 };

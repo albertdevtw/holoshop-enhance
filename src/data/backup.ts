@@ -2,6 +2,7 @@
 import type { Favorite, Order, OrderItem, OrderStatus, ProductHandle, ProductInfo, SharedDb, UserDb } from './db';
 import { GLOBAL_SCHEMA_VERSION, type AccountInfo } from './global';
 import { withProductIds } from './purchases';
+import { isOrderDetailPath } from '@/src/site-adapter/url';
 
 export const BACKUP_APP = 'holoshop-enhance';
 
@@ -142,8 +143,7 @@ function validOrder(v: unknown): v is Order {
   return (
     isObject(v) &&
     isNonEmptyText(v.orderNumber) &&
-    isText(v.detailPath) &&
-    v.detailPath.startsWith('/') &&
+    isOrderDetailPath(v.detailPath) &&
     isDate(v.date) &&
     ORDER_STATUSES.includes(v.status as OrderStatus) &&
     isText(v.statusText) &&
@@ -160,6 +160,11 @@ function validOrder(v: unknown): v is Order {
     isNullableDate(v.detailFetchedAt) &&
     isDate(v.updatedAt)
   );
+}
+
+/** 主鍵不重複（重複時無法判斷哪一筆較新；code-review CR-010） */
+function hasUniqueKeys<T, K>(rows: readonly T[], keyOf: (row: T) => K): boolean {
+  return new Set(rows.map(keyOf)).size === rows.length;
 }
 
 const isStringArray = (v: unknown): boolean => v === undefined || (Array.isArray(v) && v.every(isText));
@@ -214,7 +219,9 @@ export function parseBackup(text: string): { ok: true; backup: BackupFile } | { 
       !Array.isArray(a.favorites) ||
       !Array.isArray(a.orders) ||
       !a.favorites.every(validFavorite) ||
-      !a.orders.every(validOrder)
+      !a.orders.every(validOrder) ||
+      !hasUniqueKeys(a.favorites, (f) => f.productId) ||
+      !hasUniqueKeys(a.orders, (o) => o.orderNumber)
     ) {
       return { ok: false, error: 'invalid-data' };
     }
@@ -225,6 +232,7 @@ export function parseBackup(text: string): { ok: true; backup: BackupFile } | { 
       orders: a.orders.map(normalizeOrder),
     });
   }
+  if (!hasUniqueKeys(accounts, (a) => a.customerId)) return { ok: false, error: 'invalid-data' };
   let shared: BackupShared | undefined;
   if (raw.shared !== undefined) {
     const sh = raw.shared;
@@ -233,7 +241,9 @@ export function parseBackup(text: string): { ok: true; backup: BackupFile } | { 
       !Array.isArray(sh.products) ||
       !Array.isArray(sh.productHandles) ||
       !sh.products.every(validProduct) ||
-      !sh.productHandles.every(validProductHandle)
+      !sh.productHandles.every(validProductHandle) ||
+      !hasUniqueKeys(sh.products, (p) => p.productId) ||
+      !hasUniqueKeys(sh.productHandles, (h) => h.handle)
     ) {
       return { ok: false, error: 'invalid-data' };
     }

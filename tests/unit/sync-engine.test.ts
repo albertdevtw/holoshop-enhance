@@ -246,6 +246,40 @@ describe('sync engine', () => {
     expect((await getSyncMeta(db)).requested).toBeNull();
   });
 
+  it('部分出貨的訂單也是涵蓋目標（code-review CR-009）', async () => {
+    const db = openUserDb(CID);
+    let meta = startRun(defaultSyncMeta(), now);
+    meta = await step(meta, { kind: 'page', page: 1, orders: parsed.orders, lastPage: 1 });
+    await setSyncMeta(db, finishRun(meta, now));
+    await db.orders.where('orderNumber').equals('#1000003').modify({ status: 'fulfilled' });
+    const old: Order = { ...(await db.orders.get('#1000001'))!, orderNumber: '#0999999', date: '2025-06-01', status: 'partial' };
+    await db.orders.put(old);
+    meta = await prepareRun(db, { ...(await getSyncMeta(db)), requested: 'incremental' }, now);
+    expect(meta.coverTarget).toEqual({ date: '2025-06-01', orderNumber: '#0999999' });
+  });
+
+  it('路徑不合法的訂單不派詳細頁工作（code-review CR-007）', async () => {
+    const db = openUserDb(CID);
+    let meta = startRun(defaultSyncMeta(), now);
+    meta = await step(meta, { kind: 'page', page: 1, orders: [{ ...parsed.orders[1]!, detailPath: '//example.invalid/account/orders/x' }], lastPage: 1 });
+    const task = await nextTask(db, openSharedDb(), meta, now);
+    expect(task?.kind).not.toBe('detail');
+  });
+
+  it('匯入補齊要求不覆蓋進行中的同步或其他要求（code-review CR-012）', async () => {
+    const db = openUserDb(CID);
+    let meta = startRun(defaultSyncMeta(), now);
+    meta = await step(meta, { kind: 'page', page: 1, orders: [parsed.orders[1]!], lastPage: 1 });
+    // 同步進行中
+    await setSyncMeta(db, { ...meta, nextPage: 5 });
+    expect(await requestResolveIfNeeded(db, openSharedDb(), now)).toBe(true);
+    expect(await getSyncMeta(db)).toMatchObject({ state: 'running', nextPage: 5, requested: null });
+    // 已有完整同步要求
+    await setSyncMeta(db, { ...finishRun(meta, now), requested: 'full' });
+    await requestResolveIfNeeded(db, openSharedDb(), now);
+    expect((await getSyncMeta(db)).requested).toBe('full');
+  });
+
   it('需要重新登入時停止並記錄狀態', async () => {
     const meta = await step(startRun(defaultSyncMeta(), now), { kind: 'error', reason: 'needs-login' });
     expect(meta).toMatchObject({ state: 'needs-login', error: 'needs-login' });
