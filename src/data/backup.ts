@@ -1,6 +1,7 @@
 // 匯出／匯入（05-features F8、04-data-model §5）
-import type { Favorite, Order, UserDb } from './db';
+import type { Favorite, Order, OrderItem, OrderStatus, UserDb } from './db';
 import { GLOBAL_SCHEMA_VERSION, type AccountInfo } from './global';
+import { withProductIds } from './purchases';
 
 export const BACKUP_APP = 'holoshop-enhance';
 
@@ -44,12 +45,79 @@ export function backupFileName(now: Date): string {
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
+// 匯入驗證：檢查介面與同步會用到的每個欄位，避免不完整的資料寫入資料庫（code-review CR-004）
+const isText = (v: unknown): v is string => typeof v === 'string';
+const isNonEmptyText = (v: unknown): v is string => isText(v) && v.length > 0;
+const isNullableText = (v: unknown): boolean => v === null || isText(v);
+/** 舊匯出檔可能沒有此欄位 */
+const isOptionalNullableText = (v: unknown): boolean => v === undefined || isNullableText(v);
+const isId = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
+const isDate = (v: unknown): v is string => isText(v) && Number.isFinite(Date.parse(v));
+const isNullableDate = (v: unknown): boolean => v === null || isDate(v);
+const ORDER_STATUSES: OrderStatus[] = ['unfulfilled', 'fulfilled', 'partial', 'cancelled', 'unknown'];
+
 function validFavorite(v: unknown): v is Favorite {
-  return isObject(v) && Number.isSafeInteger(v.productId) && typeof v.handle === 'string' && typeof v.updatedAt === 'string';
+  return (
+    isObject(v) &&
+    isId(v.productId) &&
+    isNonEmptyText(v.handle) &&
+    isObject(v.title) &&
+    (v.title.ja === undefined || isText(v.title.ja)) &&
+    (v.title.en === undefined || isText(v.title.en)) &&
+    isNullableText(v.imageUrl) &&
+    (v.salePeriod === null ||
+      (isObject(v.salePeriod) && isNullableDate(v.salePeriod.start) && isNullableDate(v.salePeriod.end))) &&
+    isDate(v.addedAt) &&
+    isDate(v.updatedAt) &&
+    typeof v.muted === 'boolean'
+  );
+}
+
+function validOrderItem(v: unknown): v is OrderItem {
+  return (
+    isObject(v) &&
+    isNonEmptyText(v.handle) &&
+    (v.productId === null || isId(v.productId)) &&
+    isText(v.productTitle) &&
+    isNullableText(v.variantTitleRaw) &&
+    (v.variantId === null || isId(v.variantId)) &&
+    isId(v.quantity) &&
+    isOptionalNullableText(v.imageUrl)
+  );
 }
 
 function validOrder(v: unknown): v is Order {
-  return isObject(v) && typeof v.orderNumber === 'string' && Array.isArray(v.items) && typeof v.updatedAt === 'string';
+  return (
+    isObject(v) &&
+    isNonEmptyText(v.orderNumber) &&
+    isText(v.detailPath) &&
+    v.detailPath.startsWith('/') &&
+    isDate(v.date) &&
+    ORDER_STATUSES.includes(v.status as OrderStatus) &&
+    isText(v.statusText) &&
+    (v.total === null ||
+      (isObject(v.total) &&
+        typeof v.total.amount === 'number' &&
+        Number.isFinite(v.total.amount) &&
+        isNonEmptyText(v.total.currency))) &&
+    (v.shipBy === undefined ||
+      v.shipBy === null ||
+      (isObject(v.shipBy) && isText(v.shipBy.text) && (v.shipBy.date === null || isDate(v.shipBy.date)))) &&
+    Array.isArray(v.items) &&
+    v.items.every(validOrderItem) &&
+    isNullableDate(v.detailFetchedAt) &&
+    isDate(v.updatedAt)
+  );
+}
+
+/** 補上舊匯出檔缺少的欄位；productIds 由品項重新計算，不採用檔案中的值 */
+function normalizeOrder(order: Order): Order {
+  return withProductIds({
+    ...order,
+    shipBy: order.shipBy ?? null,
+    items: order.items.map((i) => ({ ...i, imageUrl: i.imageUrl ?? null })),
+    productIds: [],
+  });
 }
 
 /** 解析並驗證匯入檔；版本較新（未來版本匯出）時拒絕 */
@@ -81,7 +149,7 @@ export function parseBackup(text: string): { ok: true; backup: BackupFile } | { 
       customerId: a.customerId,
       label: typeof a.label === 'string' ? a.label : `#${a.customerId.slice(-4)}`,
       favorites: a.favorites,
-      orders: a.orders,
+      orders: a.orders.map(normalizeOrder),
     });
   }
   return {

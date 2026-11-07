@@ -1,6 +1,6 @@
 // Service Worker：中央調度、帳號切換、資料寫入、同步指派、圖示徽章
 import { getGlobalState, updateGlobalState, type GlobalState, type Settings } from '@/src/data/global';
-import { buildBackup, exportAccount, importAccount } from '@/src/data/backup';
+import { buildBackup, exportAccount, importAccount, parseBackup } from '@/src/data/backup';
 import { deleteUserDb, openSharedDb, openUserDb, type UserDb } from '@/src/data/db';
 import {
   getFavorite,
@@ -199,14 +199,18 @@ async function handleMessage(message: Message, sender: Sender): Promise<Response
       return accounts.length ? buildBackup(accounts, now) : null;
     }
     case 'importData': {
+      // 寫入前再驗證一次，不信任傳入的資料（code-review CR-004）
+      const parsed = parseBackup(JSON.stringify(message.backup));
+      if (!parsed.ok) throw new Error(`invalid backup: ${parsed.error}`);
+      const backup = parsed.backup;
       const results = [];
-      for (const account of message.backup.accounts) {
+      for (const account of backup.accounts) {
         const written = await importAccount(openUserDb(account.customerId), account);
         results.push({ customerId: account.customerId, ...written });
       }
       const iso = now.toISOString();
       const state = await updateGlobalState((s) => {
-        for (const a of message.backup.accounts) {
+        for (const a of backup.accounts) {
           s.accounts[a.customerId] ??= { customerId: a.customerId, label: a.label, firstSeenAt: iso, lastSeenAt: iso };
         }
       });

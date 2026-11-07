@@ -2,7 +2,7 @@
   "name": "holoshop-enhance",
   "description": "shop.hololivepro.com 個人用擴充功能",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "packageManager": "pnpm@12.16.1",
   "scripts": {

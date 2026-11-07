@@ -86,6 +86,24 @@ describe('toOrder / summarizePurchases', () => {
     expect(summarizePurchases([fixed], 2000000002).byVariant).toEqual({ 3000000001: 2 });
   });
 
+  it('同商品的已換算品項先消耗詳細頁資料，不會配到相同規格（code-review CR-003）', () => {
+    const base = orders()[0]!;
+    const item = base.items[0]!;
+    const order = {
+      ...base,
+      items: [
+        { ...item, variantId: 3000000001 },
+        { ...item, variantTitleRaw: '不明な規格', variantId: null },
+      ],
+    };
+    const detail = [
+      { handle: item.handle, variantId: 3000000001, variantTitle: null, quantity: 1 },
+      { handle: item.handle, variantId: 3000000003, variantTitle: null, quantity: 1 },
+    ];
+    const fixed = applyDetail(order, detail, NOW);
+    expect(fixed.items.map((i) => i.variantId)).toEqual([3000000001, 3000000003]);
+  });
+
   it('重新解析時保留已解析的規格', () => {
     const [o3] = orders();
     const fixed = applyDetail(o3!, parseOrderDetail(loadFixture('order-detail.html')), NOW);

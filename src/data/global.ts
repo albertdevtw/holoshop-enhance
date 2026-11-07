@@ -88,14 +88,22 @@ export async function getGlobalState(): Promise<GlobalState> {
   return migrateGlobalState(stored[STORAGE_KEY]);
 }
 
+// 讀取 → 修改 → 寫回依序執行，避免並行更新互相覆蓋（code-review CR-005）
+let updateTail: Promise<void> = Promise.resolve();
+
 /** 以更新函式修改全域狀態並寫回（只應由 Service Worker 呼叫） */
-export async function updateGlobalState(
-  update: (state: GlobalState) => GlobalState | void,
-): Promise<GlobalState> {
-  const state = await getGlobalState();
-  const next = update(state) ?? state;
-  await browser.storage.local.set({ [STORAGE_KEY]: next });
-  return next;
+export function updateGlobalState(update: (state: GlobalState) => GlobalState | void): Promise<GlobalState> {
+  const result = updateTail.then(async () => {
+    const state = await getGlobalState();
+    const next = update(state) ?? state;
+    await browser.storage.local.set({ [STORAGE_KEY]: next });
+    return next;
+  });
+  updateTail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
 }
 
 /** 監聽全域狀態變化（UI 用來即時切換語系等） */

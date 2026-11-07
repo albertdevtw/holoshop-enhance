@@ -55,6 +55,34 @@ describe('parseBackup', () => {
     if (res.ok) expect(summarizeBackup(res.backup)).toEqual([{ customerId: CID, label: '#0001', favorites: 1, orders: 1 }]);
   });
 
+  it('拒絕欄位不完整的資料（code-review CR-004）', () => {
+    const withFavorite = (f: unknown) =>
+      parseBackup(JSON.stringify({ ...valid, accounts: [{ ...valid.accounts[0], favorites: [f] }] }));
+    const withOrder = (o: unknown) =>
+      parseBackup(JSON.stringify({ ...valid, accounts: [{ ...valid.accounts[0], orders: [o] }] }));
+    const { title: _title, ...noTitle } = fav(1, '2026-01-01T00:00:00Z');
+    expect(withFavorite(noTitle)).toEqual({ ok: false, error: 'invalid-data' });
+    expect(withFavorite({ ...fav(1, 'not a date'), updatedAt: 'not a date' })).toEqual({ ok: false, error: 'invalid-data' });
+    expect(withOrder({ ...order('#1', '2026-01-01T00:00:00Z'), items: [null] })).toEqual({ ok: false, error: 'invalid-data' });
+    const item = { handle: 'a', productId: 5, productTitle: 'A', variantTitleRaw: null, variantId: null, quantity: 0, imageUrl: null };
+    expect(withOrder({ ...order('#1', '2026-01-01T00:00:00Z'), items: [item] })).toEqual({ ok: false, error: 'invalid-data' });
+    expect(withOrder({ ...order('#1', '2026-01-01T00:00:00Z'), status: 'shipped' })).toEqual({ ok: false, error: 'invalid-data' });
+  });
+
+  it('productIds 由品項重新計算，舊檔缺少的欄位補為 null', () => {
+    const { shipBy: _shipBy, ...legacy } = order('#1', '2026-01-01T00:00:00Z');
+    const item = { handle: 'a', productId: 5, productTitle: 'A', variantTitleRaw: null, variantId: null, quantity: 1 };
+    const res = parseBackup(
+      JSON.stringify({ ...valid, accounts: [{ ...valid.accounts[0], orders: [{ ...legacy, items: [item], productIds: [999] }] }] }),
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const o = res.backup.accounts[0]!.orders[0]!;
+    expect(o.productIds).toEqual([5]);
+    expect(o.shipBy).toBeNull();
+    expect(o.items[0]?.imageUrl).toBeNull();
+  });
+
   it('拒絕不合法的檔案', () => {
     expect(parseBackup('{')).toEqual({ ok: false, error: 'invalid-json' });
     expect(parseBackup('{"app":"other","accounts":[]}')).toEqual({ ok: false, error: 'not-backup' });

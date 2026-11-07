@@ -33,7 +33,12 @@ export function shouldSync(meta: SyncMeta, now: Date): boolean {
 /** 開始新的同步，或沿用進行中的進度 */
 export function startRun(meta: SyncMeta, now: Date): SyncMeta {
   if (meta.state === 'running' && !meta.requested) return meta;
-  const mode: SyncMode = meta.requested ?? (meta.lastSuccessAt ? 'incremental' : 'full');
+  // 完整同步進行中（含中斷待續）時，非完整同步的要求不重新開始，沿用目前進度
+  if (meta.state === 'running' && meta.mode === 'full' && meta.requested !== 'full') {
+    return { ...meta, requested: null };
+  }
+  // 從未完成完整同步前，任何要求都以完整同步執行，避免只處理部分訂單就記為成功（code-review CR-001）
+  const mode: SyncMode = !meta.lastSuccessAt ? 'full' : (meta.requested ?? 'incremental');
   return {
     ...meta,
     state: 'running',
@@ -93,7 +98,8 @@ export async function loadLookup(shared: SharedDb): Promise<ProductLookup> {
 export async function nextTask(db: UserDb, shared: SharedDb, meta: SyncMeta, now: Date): Promise<SyncTask | null> {
   if (meta.phase === 'pages') return { kind: 'page', page: meta.nextPage };
 
-  const [orders, lookup] = await Promise.all([db.orders.toArray(), loadLookup(shared)]);
+  const lookup = await loadLookup(shared);
+  const orders = await applyLookup(db, lookup, now);
   for (const order of orders) {
     for (const item of order.items) {
       if (item.productId !== null) continue;
@@ -105,6 +111,28 @@ export async function nextTask(db: UserDb, shared: SharedDb, meta: SyncMeta, now
   const pending = orders.find(needsDetail);
   if (pending) return { kind: 'detail', orderNumber: pending.orderNumber, path: pending.detailPath };
   return null;
+}
+
+/**
+ * 以共用商品資料補上尚未換算的品項並寫回，回傳最新訂單（code-review CR-006）：
+ * 商品資料可能已由其他帳號取得，或寫入後 Service Worker 在更新訂單前被終止
+ */
+async function applyLookup(db: UserDb, lookup: ProductLookup, now: Date): Promise<Order[]> {
+  const iso = now.toISOString();
+  return db.transaction('rw', db.orders, async () => {
+    const changed: Order[] = [];
+    const orders = (await db.orders.toArray()).map((order) => {
+      if (!order.items.some((i) => i.productId === null || i.variantId === null)) return order;
+      const items = order.items.map((i) => resolveItem(i, lookup));
+      const differs = items.some((i, idx) => i.productId !== order.items[idx]!.productId || i.variantId !== order.items[idx]!.variantId);
+      if (!differs) return order;
+      const next = withProductIds({ ...order, items, updatedAt: iso });
+      changed.push(next);
+      return next;
+    });
+    if (changed.length) await db.orders.bulkPut(changed);
+    return orders;
+  });
 }
 
 /** 寫入一批訂單（同步或被動擷取）；回傳新訂單數與是否整批都已存在 */
@@ -196,5 +224,6 @@ async function reresolveOrders(db: UserDb, shared: SharedDb, handle: string, iso
 
 export function finishRun(meta: SyncMeta, now: Date): SyncMeta {
   const iso = now.toISOString();
-  return { ...meta, state: 'idle', finishedAt: iso, lastSuccessAt: iso, error: null };
+  // 只換算商品的 resolve 不算一次頁面同步，不更新 lastSuccessAt
+  return { ...meta, state: 'idle', finishedAt: iso, lastSuccessAt: meta.mode === 'resolve' ? meta.lastSuccessAt : iso, error: null };
 }

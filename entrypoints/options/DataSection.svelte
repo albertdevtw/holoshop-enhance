@@ -47,7 +47,11 @@
     const results = await sendMessage({ type: 'importData', backup: pending.backup });
     busy = false;
     pending = null;
-    const total = (results ?? []).reduce((acc, r) => ({ favorites: acc.favorites + r.favorites, orders: acc.orders + r.orders }), {
+    if (!results) {
+      message = { kind: 'error', text: t('data.error.invalid-data') };
+      return;
+    }
+    const total = results.reduce((acc, r) => ({ favorites: acc.favorites + r.favorites, orders: acc.orders + r.orders }), {
       favorites: 0,
       orders: 0,
     });

@@ -60,6 +60,12 @@ export function withProductIds(order: Order): Order {
 /** 以詳細頁結果補上 variantId（依 handle 與出現順序對應） */
 export function applyDetail(order: Order, detail: ParsedDetailItem[], now: string): Order {
   const pool = [...detail];
+  // 已換算的品項先消耗對應的詳細頁資料，避免後面同商品的品項配到相同規格（code-review CR-003）
+  for (const item of order.items) {
+    if (item.variantId === null) continue;
+    const idx = pool.findIndex((d) => d.handle === item.handle && d.variantId === item.variantId);
+    if (idx >= 0) pool.splice(idx, 1);
+  }
   const items = order.items.map((item) => {
     if (item.variantId !== null) return item;
     const idx = pool.findIndex((d) => d.handle === item.handle && d.variantId !== null);
