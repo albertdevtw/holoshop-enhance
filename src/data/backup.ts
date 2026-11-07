@@ -82,7 +82,8 @@ function validOrderItem(v: unknown): v is OrderItem {
     isNullableText(v.variantTitleRaw) &&
     (v.variantId === null || isId(v.variantId)) &&
     isId(v.quantity) &&
-    isOptionalNullableText(v.imageUrl)
+    isOptionalNullableText(v.imageUrl) &&
+    (v.lineTotal === undefined || v.lineTotal === null || (typeof v.lineTotal === 'number' && Number.isFinite(v.lineTotal) && v.lineTotal >= 0))
   );
 }
 

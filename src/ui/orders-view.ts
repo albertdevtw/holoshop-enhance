@@ -51,6 +51,29 @@ export function sortUnfulfilled<T extends Order>(list: T[]): T[] {
   });
 }
 
+export type OrderFilter = 'unfulfilled' | 'fulfilled' | 'all';
+export const ORDER_FILTERS: OrderFilter[] = ['unfulfilled', 'fulfilled', 'all'];
+
+/** 還有品項未出貨（未発送＋部分發送） */
+export function isPendingShipment(order: Order): boolean {
+  return order.status === 'unfulfilled' || order.status === 'partial';
+}
+
+/** 有訂單的年份（新到舊） */
+export function orderYears(orders: Order[]): string[] {
+  return [...new Set(orders.map((o) => o.date.slice(0, 4)).filter((y) => /^\d{4}$/.test(y)))].sort().reverse();
+}
+
+/**
+ * 訂單分頁的篩選與排序（05-features F15）：
+ * 未発送不限年份、依發送予定日排序；発送済み／すべて依年份篩選、注文日由新到舊
+ */
+export function filterOrders<T extends Order>(orders: T[], filter: OrderFilter, year: string | null): T[] {
+  if (filter === 'unfulfilled') return sortUnfulfilled(orders.filter(isPendingShipment));
+  const list = orders.filter((o) => (filter === 'all' || o.status === 'fulfilled') && (!year || o.date.startsWith(year)));
+  return list.sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : orderSeq(b.orderNumber) - orderSeq(a.orderNumber)));
+}
+
 const intlLocale: Record<UiLocale, string> = { ja: 'ja-JP', en: 'en-US', 'zh-TW': 'zh-TW' };
 
 /** 金額：依幣別格式化 */

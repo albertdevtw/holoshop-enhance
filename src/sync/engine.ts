@@ -100,16 +100,30 @@ export async function nextTask(db: UserDb, shared: SharedDb, meta: SyncMeta, now
 
   const lookup = await loadLookup(shared);
   const orders = await applyLookup(db, lookup, now);
-  for (const order of orders) {
-    for (const item of order.items) {
-      if (item.productId !== null) continue;
-      const known = lookup.handles.get(item.handle);
-      const stale = known && known.productId === null && now.getTime() - new Date(known.fetchedAt).getTime() > PRODUCT_RETRY_MS;
-      if (!known || stale) return { kind: 'product', handle: item.handle };
-    }
-  }
+
+  // 先取得訂單明細，再取得商品資訊（D-022）
   const pending = orders.find(needsDetail);
   if (pending) return { kind: 'detail', orderNumber: pending.orderNumber, path: pending.detailPath };
+
+  const retryable = (handle: string) => {
+    const known = lookup.handles.get(handle);
+    return !known || (known.productId === null && now.getTime() - new Date(known.fetchedAt).getTime() > PRODUCT_RETRY_MS);
+  };
+  for (const order of orders) {
+    for (const item of order.items) {
+      if (item.productId === null) {
+        if (retryable(item.handle)) return { kind: 'product', handle: item.handle };
+        continue;
+      }
+      // 舊的商品資訊沒有品牌名稱與標籤時重新取得；最近一次取得失敗（404）的不重試
+      const info = lookup.products.get(item.productId);
+      const known = lookup.handles.get(item.handle);
+      const failedRecently = known?.productId === null && !retryable(item.handle);
+      // handle 已對應到其他商品（商品被替換）時不重抓，避免無限迴圈
+      if (known && known.productId !== null && known.productId !== item.productId) continue;
+      if ((!info || info.vendor === undefined) && !failedRecently) return { kind: 'product', handle: item.handle };
+    }
+  }
   return null;
 }
 

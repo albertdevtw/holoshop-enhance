@@ -1,5 +1,5 @@
 // 訊息協定：所有元件與 Service Worker 之間的訊息型別（DEVELOPMENT §8.1）
-import type { Favorite, Order } from '@/src/data/db';
+import type { Favorite, Order, ProductInfo } from '@/src/data/db';
 import type { ProductSnapshot } from '@/src/data/favorites';
 import type { BackupFile } from '@/src/data/backup';
 import type { PurchaseSummary } from '@/src/data/purchases';
@@ -51,9 +51,9 @@ export interface ListFavoritesMessage {
   type: 'listFavorites';
 }
 
-/** Side Panel：目前帳號的未発送訂單（F12） */
-export interface ListUnfulfilledOrdersMessage {
-  type: 'listUnfulfilledOrders';
+/** Side Panel 訂單分頁與統計頁：目前帳號的全部訂單（F13、F15） */
+export interface ListOrdersMessage {
+  type: 'listOrders';
 }
 
 export interface RemoveFavoriteMessage {
@@ -122,7 +122,7 @@ export type Message =
   | ProductViewedMessage
   | ToggleFavoriteMessage
   | ListFavoritesMessage
-  | ListUnfulfilledOrdersMessage
+  | ListOrdersMessage
   | RemoveFavoriteMessage
   | SetFavoriteMutedMessage
   | SyncClaimMessage
@@ -152,7 +152,8 @@ export interface ResponseMap {
   }>;
   toggleFavorite: WriteResult<{ favorite: Favorite | null }>;
   listFavorites: { customerId: string | null; favorites: FavoriteView[] };
-  listUnfulfilledOrders: { customerId: string | null; orders: Order[] };
+  /** products：訂單品項用到的商品資訊（F14 歸類用） */
+  listOrders: { customerId: string | null; orders: Order[]; products: ProductInfo[] };
   setFavoriteMuted: WriteResult<null>;
   removeFavorite: WriteResult<null>;
   syncClaim: WriteResult<{ task: SyncTask | null }>;

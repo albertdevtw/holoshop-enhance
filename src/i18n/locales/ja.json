@@ -10,8 +10,9 @@
     "title": "お気に入り",
     "empty": "お気に入りはまだありません",
     "tabFavorites": "お気に入り（{{count}}）",
-    "tabUnfulfilled": "未発送（{{count}}）",
-    "openSettings": "設定を開く"
+    "openSettings": "設定を開く",
+    "openStats": "購入統計を開く",
+    "tabOrders": "注文（{{count}}）"
   },
   "options": {
     "title": "設定",
@@ -117,6 +118,68 @@
     "total": "合計",
     "detail": "注文詳細",
     "status": "未発送",
-    "quantity": "×{{count}}"
+    "quantity": "×{{count}}",
+    "filterUnfulfilled": "未発送",
+    "filterFulfilled": "発送済み",
+    "filterAll": "すべて",
+    "year": "年",
+    "allYears": "すべての年",
+    "emptyFiltered": "該当する注文はありません"
+  },
+  "stats": {
+    "title": "購入統計",
+    "byYear": "年別",
+    "byMonth": "月別",
+    "year": "年",
+    "baseCurrency": "合計通貨",
+    "totalCard": "合計（{{currency}} 換算）",
+    "ordersCard": "注文数",
+    "orderCount": "{{count}} 件",
+    "period": "期間",
+    "total": "合計",
+    "totalConverted": "合計（{{currency}} 換算）",
+    "partial": "一部未換算",
+    "partialNote": "為替レートが未設定の通貨は換算合計に含まれていません。",
+    "note": "注文の合計金額（送料込み）で集計しています。キャンセルされた注文は含みません。",
+    "unknownAmount": "金額不明の注文：{{count}} 件",
+    "empty": "まだ注文データがありません。ショップのページを開いて同期してください。",
+    "rates": "為替レート設定（合計通貨：{{currency}}）",
+    "rateDefault": "初期値 {{value}}",
+    "rateNoDefault": "初期値なし",
+    "rateUnset": "未設定",
+    "resetRates": "初期値に戻す",
+    "baseUnset": "{{currency}} の為替レートが未設定のため換算できません。",
+    "noOtherCurrency": "換算が必要な通貨はありません。",
+    "viewPeriod": "期間別",
+    "viewTalent": "タレント別",
+    "talent": {
+      "filter": {
+        "talent": "タレント",
+        "unit": "ユニット",
+        "group": "グループ",
+        "other": "その他",
+        "all": "すべて"
+      },
+      "row": {
+        "multiGroup": "複数グループ",
+        "unknown": "不明",
+        "noTalent": "タレント情報なし"
+      },
+      "period": "期間",
+      "allPeriods": "すべて",
+      "quantity": "{{count}} 点",
+      "subtotal": "{{category}} 合計",
+      "empty": "該当する商品はありません",
+      "note": "商品の小計（送料・税金を除く）で集計しています。キャンセルされた注文は含みません。",
+      "pending": "明細未取得の注文：{{count}} 件（次回の同期で取得します）",
+      "back": "戻る",
+      "openDetail": "商品明細を表示",
+      "detail": {
+        "product": "商品",
+        "unitPrice": "単価",
+        "quantity": "数量",
+        "total": "合計"
+      }
+    }
   }
 }

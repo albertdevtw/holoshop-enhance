@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Order } from '@/src/data/db';
-import { formatMoney, orderDetailUrl, shipState, sortUnfulfilled } from '@/src/ui/orders-view';
+import { filterOrders, formatMoney, orderDetailUrl, orderYears, shipState, sortUnfulfilled } from '@/src/ui/orders-view';
 
 function order(orderNumber: string, date: string, shipDate: string | null): Order {
   return {
@@ -56,5 +56,37 @@ describe('格式化', () => {
     expect(formatMoney({ amount: 2346, currency: 'JPY' }, 'ja')).toMatch(/2,346/);
     expect(formatMoney(null, 'ja')).toBe('');
     expect(orderDetailUrl(order('#1', '2026-01-01', null), 'en')).toBe('https://shop.hololivepro.com/en/account/orders/#1');
+  });
+});
+
+describe('filterOrders（F15）', () => {
+  const withStatus = (no: string, date: string, status: Order['status'], ship: string | null = null): Order => ({
+    ...order(no, date, ship),
+    status,
+  });
+  const list = [
+    withStatus('#1', '2025-12-01', 'unfulfilled', '2026-03-31'),
+    withStatus('#2', '2026-02-01', 'partial', '2026-01-31'),
+    withStatus('#3', '2026-03-01', 'fulfilled'),
+    withStatus('#4', '2026-05-01', 'fulfilled'),
+    withStatus('#5', '2025-06-01', 'fulfilled'),
+    withStatus('#6', '2026-04-01', 'cancelled'),
+  ];
+
+  it('未発送含部分發送、不受年份影響、依發送予定日排序', () => {
+    expect(filterOrders(list, 'unfulfilled', '2026').map((o) => o.orderNumber)).toEqual(['#2', '#1']);
+  });
+
+  it('発送済み依年份篩選，注文日新到舊', () => {
+    expect(filterOrders(list, 'fulfilled', '2026').map((o) => o.orderNumber)).toEqual(['#4', '#3']);
+    expect(filterOrders(list, 'fulfilled', null).map((o) => o.orderNumber)).toEqual(['#4', '#3', '#5']);
+  });
+
+  it('すべて含取消的訂單', () => {
+    expect(filterOrders(list, 'all', '2026').map((o) => o.orderNumber)).toEqual(['#4', '#6', '#3', '#2']);
+  });
+
+  it('年份清單新到舊', () => {
+    expect(orderYears(list)).toEqual(['2026', '2025']);
   });
 });

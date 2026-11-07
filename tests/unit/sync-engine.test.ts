@@ -46,7 +46,7 @@ describe('sync engine', () => {
     expect(startRun({ ...recent, requested: 'resolve' }, now).phase).toBe('resolve');
   });
 
-  it('完整同步：逐頁 → 換算商品 → 詳細頁 → 完成', async () => {
+  it('完整同步：逐頁 → 訂單明細 → 商品資訊 → 完成（D-022）', async () => {
     const db = openUserDb(CID);
     let meta = startRun(defaultSyncMeta(), now);
 
@@ -59,7 +59,23 @@ describe('sync engine', () => {
     meta = await step(meta, { kind: 'page', page: 2, orders: [], lastPage: 2 });
     expect(meta.phase).toBe('resolve');
 
-    // 換算商品（順序不拘）
+    // 先取得未取消訂單的明細（取消的 #1000001 不抓）
+    const detailItems = parseOrderDetail(loadFixture('order-detail.html'));
+    const fetchedDetails: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      const task = await nextTask(db, openSharedDb(), meta, now);
+      expect(task?.kind).toBe('detail');
+      const orderNumber = (task as { orderNumber: string }).orderNumber;
+      fetchedDetails.push(orderNumber);
+      const items =
+        orderNumber === '#1000003'
+          ? detailItems
+          : [{ handle: 'sample_set_2026', variantId: 3000000003, variantTitle: null, quantity: 1, lineTotal: 800 }];
+      meta = await step(meta, { kind: 'detail', orderNumber, items });
+    }
+    expect(fetchedDetails.sort()).toEqual(['#1000002', '#1000003']);
+
+    // 再換算商品（順序不拘）
     const products: Record<'sample_set_2026' | 'sample_single', ProductInfo | null> = {
       sample_set_2026: {
         productId: 2000000002,
@@ -68,6 +84,10 @@ describe('sync engine', () => {
           { id: 3000000001, title: 'セット / フルセット（旧名称）' },
           { id: 3000000003, title: 'グッズ / アクリルスタンド' },
         ],
+        vendor: 'Sample',
+        talents: ['サンプル'],
+        groups: [],
+        generations: [],
         fetchedAt: now.toISOString(),
       },
       sample_single: null, // 已下架
@@ -81,18 +101,6 @@ describe('sync engine', () => {
       meta = await step(meta, { kind: 'product', handle, product: products[handle] });
     }
     expect(seen.sort()).toEqual(['sample_set_2026', 'sample_single']);
-
-    // 規格對不到 → 詳細頁
-    expect(await nextTask(db, openSharedDb(), meta, now)).toEqual({
-      kind: 'detail',
-      orderNumber: '#1000003',
-      path: '/account/orders/token0003',
-    });
-    meta = await step(meta, {
-      kind: 'detail',
-      orderNumber: '#1000003',
-      items: parseOrderDetail(loadFixture('order-detail.html')),
-    });
     expect(await nextTask(db, openSharedDb(), meta, now)).toBeNull();
 
     const orders = await db.orders.toArray();
@@ -102,6 +110,25 @@ describe('sync engine', () => {
       byVariant: { 3000000001: 2, 3000000003: 1 },
       unmatched: 0,
     });
+    const o3 = orders.find((o) => o.orderNumber === '#1000003');
+    expect(o3?.items.map((i) => i.lineTotal)).toEqual([2346, 500]);
+  });
+
+  it('舊的商品資訊沒有品牌名稱時重新取得；404 後不重試', async () => {
+    const db = openUserDb(CID);
+    const shared = openSharedDb();
+    await shared.productHandles.bulkPut([
+      { handle: 'sample_set_2026', productId: 2000000002, fetchedAt: now.toISOString() },
+      { handle: 'sample_single', productId: null, fetchedAt: now.toISOString() },
+    ]);
+    // 舊格式：沒有 vendor
+    await shared.products.put({ productId: 2000000002, handle: 'sample_set_2026', variants: [], fetchedAt: now.toISOString() });
+    let meta = startRun(defaultSyncMeta(), now);
+    meta = await step(meta, { kind: 'page', page: 1, orders: [parsed.orders[1]!], lastPage: 1 });
+    meta = await step(meta, { kind: 'detail', orderNumber: '#1000002', items: [] });
+    expect(await nextTask(db, shared, meta, now)).toEqual({ kind: 'product', handle: 'sample_set_2026' });
+    await shared.products.put({ productId: 2000000002, handle: 'sample_set_2026', variants: [], vendor: '', fetchedAt: now.toISOString() });
+    expect(await nextTask(db, shared, meta, now)).toBeNull();
   });
 
   it('增量同步遇到整頁都是已知訂單時停止', async () => {

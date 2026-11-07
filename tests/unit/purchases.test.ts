@@ -41,10 +41,25 @@ function orders(): Order[] {
 
 describe('parseProductJson / matchVariant', () => {
   it('解析商品 JSON', () => {
-    expect(parseProductJson({ id: 5, variants: [{ id: 6, title: 'A' }] }, 'h', NOW)).toEqual({
+    expect(
+      parseProductJson(
+        {
+          id: 5,
+          vendor: 'FubuMio',
+          tags: ['Talent_白上フブキ', 'Talent_大神ミオ', 'Group_ホロライブ', 'Generation_ホロライブ1期生', 'Recommended_MERCH'],
+          variants: [{ id: 6, title: 'A' }],
+        },
+        'h',
+        NOW,
+      ),
+    ).toEqual({
       productId: 5,
       handle: 'h',
       variants: [{ id: 6, title: 'A' }],
+      vendor: 'FubuMio',
+      talents: ['白上フブキ', '大神ミオ'],
+      groups: ['ホロライブ'],
+      generations: ['ホロライブ1期生'],
       fetchedAt: NOW,
     });
     expect(parseProductJson({ nope: 1 }, 'h', NOW)).toBeNull();
@@ -65,7 +80,8 @@ describe('toOrder / summarizePurchases', () => {
     expect(o3?.items[0]?.variantId).toBeNull();
     expect(needsDetail(o3!)).toBe(true);
     expect(o2?.items[0]?.variantId).toBe(3000000003);
-    expect(needsDetail(o2!)).toBe(false);
+    // P12 起所有未取消的訂單都要取得明細（品項小計）
+    expect(needsDetail(o2!)).toBe(true);
   });
 
   it('彙總排除取消的訂單，對不到的規格計入 unmatched', () => {
@@ -97,11 +113,12 @@ describe('toOrder / summarizePurchases', () => {
       ],
     };
     const detail = [
-      { handle: item.handle, variantId: 3000000001, variantTitle: null, quantity: 1 },
-      { handle: item.handle, variantId: 3000000003, variantTitle: null, quantity: 1 },
+      { handle: item.handle, variantId: 3000000001, variantTitle: null, quantity: 1, lineTotal: 100 },
+      { handle: item.handle, variantId: 3000000003, variantTitle: null, quantity: 1, lineTotal: 200 },
     ];
     const fixed = applyDetail(order, detail, NOW);
     expect(fixed.items.map((i) => i.variantId)).toEqual([3000000001, 3000000003]);
+    expect(fixed.items.map((i) => i.lineTotal)).toEqual([100, 200]);
   });
 
   it('重新解析時保留已解析的規格', () => {

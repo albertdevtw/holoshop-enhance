@@ -40,6 +40,7 @@ export function toOrder(parsed: ParsedOrder, existing: Order | undefined, lookup
       imageUrl: p.imageUrl,
       productId: same ? prev.productId : null,
       variantId: same ? prev.variantId : null,
+      ...(same && prev.lineTotal !== undefined ? { lineTotal: prev.lineTotal } : {}),
     };
     return resolveItem(base, lookup);
   });
@@ -57,28 +58,36 @@ export function withProductIds(order: Order): Order {
   return { ...order, productIds: ids };
 }
 
-/** 以詳細頁結果補上 variantId（依 handle 與出現順序對應） */
+/**
+ * 以詳細頁結果補上 variantId 與品項小計（依 handle 與出現順序對應；D-007、D-022）。
+ * 已換算的品項先以相同規格配對，避免後面同商品的品項配到相同規格（code-review CR-003）
+ */
 export function applyDetail(order: Order, detail: ParsedDetailItem[], now: string): Order {
   const pool = [...detail];
-  // 已換算的品項先消耗對應的詳細頁資料，避免後面同商品的品項配到相同規格（code-review CR-003）
-  for (const item of order.items) {
-    if (item.variantId === null) continue;
+  const matched: (ParsedDetailItem | undefined)[] = order.items.map(() => undefined);
+  order.items.forEach((item, i) => {
+    if (item.variantId === null) return;
     const idx = pool.findIndex((d) => d.handle === item.handle && d.variantId === item.variantId);
-    if (idx >= 0) pool.splice(idx, 1);
-  }
-  const items = order.items.map((item) => {
-    if (item.variantId !== null) return item;
-    const idx = pool.findIndex((d) => d.handle === item.handle && d.variantId !== null);
-    if (idx < 0) return item;
-    const [hit] = pool.splice(idx, 1);
-    return { ...item, variantId: hit?.variantId ?? null };
+    if (idx >= 0) matched[i] = pool.splice(idx, 1)[0];
+  });
+  order.items.forEach((item, i) => {
+    if (matched[i]) return;
+    // 規格未知的品項優先配到有 variantId 的資料
+    let idx = item.variantId === null ? pool.findIndex((d) => d.handle === item.handle && d.variantId !== null) : -1;
+    if (idx < 0) idx = pool.findIndex((d) => d.handle === item.handle);
+    if (idx >= 0) matched[i] = pool.splice(idx, 1)[0];
+  });
+  const items = order.items.map((item, i) => {
+    const hit = matched[i];
+    return { ...item, variantId: item.variantId ?? hit?.variantId ?? null, lineTotal: hit?.lineTotal ?? null };
   });
   return { ...order, items, detailFetchedAt: now, updatedAt: now };
 }
 
-/** 是否需要抓詳細頁：有已知商品但規格對不到的品項，且尚未抓過 */
+/** 是否需要抓詳細頁：未取消，且尚未抓過或有品項還沒有小計（D-022） */
 export function needsDetail(order: Order): boolean {
-  return !order.detailFetchedAt && order.items.some((i) => i.productId !== null && i.variantId === null);
+  if (order.status === 'cancelled') return false;
+  return !order.detailFetchedAt || order.items.some((i) => i.lineTotal === undefined);
 }
 
 export function summarizePurchases(orders: Order[], productId: number): PurchaseSummary {

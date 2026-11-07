@@ -4,25 +4,72 @@
   import {
     formatMoney,
     formatOrderDate,
+    isPendingShipment,
     itemProductUrl,
+    ORDER_FILTERS,
     orderDetailUrl,
     shipState,
-    sortUnfulfilled,
+    type OrderFilter,
   } from '@/src/ui/orders-view';
 
-  let { t, locale, orders, loaded }: { t: TFunction; locale: UiLocale; orders: Order[]; loaded: boolean } = $props();
+  let {
+    t,
+    locale,
+    visible,
+    years,
+    loaded,
+    filter = $bindable('unfulfilled'),
+    year = $bindable('all'),
+  }: {
+    t: TFunction;
+    locale: UiLocale;
+    /** 已依篩選與年份處理、排序好的訂單 */
+    visible: Order[];
+    years: string[];
+    loaded: boolean;
+    filter?: OrderFilter;
+    /** 'all' = すべての年 */
+    year?: string;
+  } = $props();
 
-  const sorted = $derived(sortUnfulfilled(orders));
+  const filterLabel: Record<OrderFilter, string> = {
+    unfulfilled: 'orders.filterUnfulfilled',
+    fulfilled: 'orders.filterFulfilled',
+    all: 'orders.filterAll',
+  };
+
+  /** 狀態徽章的配色 */
+  function statusClass(order: Order): string {
+    if (isPendingShipment(order)) return 'pending';
+    if (order.status === 'fulfilled') return 'fulfilled';
+    return 'inactive';
+  }
 </script>
 
-{#if loaded && sorted.length === 0}
-  <p class="muted">{t('orders.empty')}</p>
+<div class="toolbar">
+  <div class="tabs" role="tablist">
+    {#each ORDER_FILTERS as f (f)}
+      <button role="tab" aria-selected={filter === f} class:active={filter === f} onclick={() => (filter = f)}>
+        {t(filterLabel[f])}
+      </button>
+    {/each}
+  </div>
+  {#if filter !== 'unfulfilled'}
+    <select bind:value={year} aria-label={t('orders.year')}>
+      <option value="all">{t('orders.allYears')}</option>
+      {#each years as y (y)}<option value={y}>{y}</option>{/each}
+    </select>
+  {/if}
+</div>
+
+{#if loaded && visible.length === 0}
+  <p class="muted">{t(filter === 'unfulfilled' ? 'orders.empty' : 'orders.emptyFiltered')}</p>
 {/if}
 
 <ul class="orders">
-  {#each sorted as order (order.orderNumber)}
-    {@const ship = shipState(order)}
-    <li class="order">
+  {#each visible as order (order.orderNumber)}
+    {@const ship = isPendingShipment(order) ? shipState(order) : ({ kind: 'none' } as const)}
+    <li class="order" class:cancelled={order.status === 'cancelled'}>
       <div class="head">
         <div class="ship">
           <span class="label">{t('orders.shipBy')}</span>
@@ -36,7 +83,7 @@
               {:else}{t('orders.daysLeft', { count: ship.days })}{/if}
             </span>
           {/if}
-          <span class="badge status">{order.statusText || t('orders.status')}</span>
+          <span class="badge status {statusClass(order)}">{order.statusText || t('orders.status')}</span>
         </div>
       </div>
 
@@ -75,6 +122,39 @@
 <style>
   .muted {
     color: var(--hs-muted);
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .tabs {
+    display: flex;
+    border: 1px solid var(--hs-border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .tabs button {
+    border: none;
+    background: none;
+    color: inherit;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .tabs button + button {
+    border-left: 1px solid var(--hs-border);
+  }
+  .tabs button.active {
+    background: var(--hs-accent);
+    color: #fff;
+  }
+  .order.cancelled {
+    opacity: 0.5;
+    filter: grayscale(1);
   }
   .orders {
     list-style: none;
@@ -129,9 +209,16 @@
     border-color: #d1242f;
     font-weight: 600;
   }
-  .badge.status {
+  .badge.status.pending {
     color: #9a6700;
     border-color: #d4a72c;
+  }
+  .badge.status.fulfilled {
+    color: #1a7f37;
+    border-color: #a6e3b5;
+  }
+  .badge.status.inactive {
+    color: var(--hs-muted);
   }
   .meta {
     display: flex;

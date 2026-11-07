@@ -10,8 +10,9 @@
     "title": "Favorites",
     "empty": "No favorites yet",
     "tabFavorites": "Favorites ({{count}})",
-    "tabUnfulfilled": "Unfulfilled ({{count}})",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "openStats": "Open purchase stats",
+    "tabOrders": "Orders ({{count}})"
   },
   "options": {
     "title": "Settings",
@@ -117,6 +118,68 @@
     "total": "Total",
     "detail": "Order details",
     "status": "Unfulfilled",
-    "quantity": "×{{count}}"
+    "quantity": "×{{count}}",
+    "filterUnfulfilled": "Unfulfilled",
+    "filterFulfilled": "Fulfilled",
+    "filterAll": "All",
+    "year": "Year",
+    "allYears": "All years",
+    "emptyFiltered": "No matching orders"
+  },
+  "stats": {
+    "title": "Purchase stats",
+    "byYear": "By year",
+    "byMonth": "By month",
+    "year": "Year",
+    "baseCurrency": "Total currency",
+    "totalCard": "Total ({{currency}})",
+    "ordersCard": "Orders",
+    "orderCount": "{{count}}",
+    "period": "Period",
+    "total": "Total",
+    "totalConverted": "Total ({{currency}})",
+    "partial": "Partially converted",
+    "partialNote": "Currencies without an exchange rate are not included in the converted total.",
+    "note": "Based on order totals (including shipping). Cancelled orders are excluded.",
+    "unknownAmount": "Orders without an amount: {{count}}",
+    "empty": "No order data yet. Open a shop page to sync.",
+    "rates": "Exchange rates (total currency: {{currency}})",
+    "rateDefault": "Default {{value}}",
+    "rateNoDefault": "No default",
+    "rateUnset": "Not set",
+    "resetRates": "Reset to defaults",
+    "baseUnset": "No exchange rate is set for {{currency}}, so totals cannot be converted.",
+    "noOtherCurrency": "No currencies need conversion.",
+    "viewPeriod": "By period",
+    "viewTalent": "By talent",
+    "talent": {
+      "filter": {
+        "talent": "Talent",
+        "unit": "Unit",
+        "group": "Group",
+        "other": "Other",
+        "all": "All"
+      },
+      "row": {
+        "multiGroup": "Multiple groups",
+        "unknown": "Unknown",
+        "noTalent": "No talent info"
+      },
+      "period": "Period",
+      "allPeriods": "All",
+      "quantity": "{{count}} pcs",
+      "subtotal": "{{category}} total",
+      "empty": "No matching items",
+      "note": "Based on item subtotals (excluding shipping and tax). Cancelled orders are excluded.",
+      "pending": "Orders without details: {{count}} (will be fetched on the next sync)",
+      "back": "Back",
+      "openDetail": "Show item details",
+      "detail": {
+        "product": "Item",
+        "unitPrice": "Unit price",
+        "quantity": "Qty",
+        "total": "Total"
+      }
+    }
   }
 }

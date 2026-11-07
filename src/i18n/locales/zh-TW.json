@@ -10,8 +10,9 @@
     "title": "最愛",
     "empty": "還沒有最愛的商品",
     "tabFavorites": "最愛（{{count}}）",
-    "tabUnfulfilled": "未發送（{{count}}）",
-    "openSettings": "開啟設定"
+    "openSettings": "開啟設定",
+    "openStats": "開啟購買統計",
+    "tabOrders": "訂單（{{count}}）"
   },
   "options": {
     "title": "設定",
@@ -117,6 +118,68 @@
     "total": "合計",
     "detail": "訂單詳細",
     "status": "未發送",
-    "quantity": "×{{count}}"
+    "quantity": "×{{count}}",
+    "filterUnfulfilled": "未發送",
+    "filterFulfilled": "已發送",
+    "filterAll": "全部",
+    "year": "年份",
+    "allYears": "全部年份",
+    "emptyFiltered": "沒有符合的訂單"
+  },
+  "stats": {
+    "title": "購買統計",
+    "byYear": "依年",
+    "byMonth": "依月",
+    "year": "年份",
+    "baseCurrency": "合計幣別",
+    "totalCard": "合計（{{currency}} 換算）",
+    "ordersCard": "訂單數",
+    "orderCount": "{{count}} 筆",
+    "period": "期間",
+    "total": "合計",
+    "totalConverted": "合計（{{currency}} 換算）",
+    "partial": "部分未換算",
+    "partialNote": "沒有設定匯率的幣別未計入換算合計。",
+    "note": "以訂單合計金額（含運費）統計，不含已取消的訂單。",
+    "unknownAmount": "金額不明的訂單：{{count}} 筆",
+    "empty": "還沒有訂單資料，請開啟商店頁面進行同步。",
+    "rates": "匯率設定（合計幣別：{{currency}}）",
+    "rateDefault": "預設值 {{value}}",
+    "rateNoDefault": "無預設值",
+    "rateUnset": "未設定",
+    "resetRates": "恢復預設值",
+    "baseUnset": "{{currency}} 沒有設定匯率，無法換算。",
+    "noOtherCurrency": "沒有需要換算的幣別。",
+    "viewPeriod": "依期間",
+    "viewTalent": "依 talent",
+    "talent": {
+      "filter": {
+        "talent": "タレント",
+        "unit": "ユニット",
+        "group": "グループ",
+        "other": "その他",
+        "all": "全部"
+      },
+      "row": {
+        "multiGroup": "複數 Group",
+        "unknown": "不明",
+        "noTalent": "無 talent 資訊"
+      },
+      "period": "期間",
+      "allPeriods": "全部",
+      "quantity": "{{count}} 件",
+      "subtotal": "{{category}} 合計",
+      "empty": "沒有符合的商品",
+      "note": "以商品小計（不含運費與稅金）統計，不含已取消的訂單。",
+      "pending": "尚未取得明細的訂單：{{count}} 筆（下次同步時取得）",
+      "back": "返回",
+      "openDetail": "顯示商品明細",
+      "detail": {
+        "product": "商品",
+        "unitPrice": "單價",
+        "quantity": "數量",
+        "total": "合計"
+      }
+    }
   }
 }

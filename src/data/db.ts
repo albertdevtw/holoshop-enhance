@@ -28,6 +28,8 @@ export interface OrderItem {
   quantity: number;
   /** 品項縮圖（F12）；沒有時為 null */
   imageUrl: string | null;
+  /** 品項小計（訂單幣別，不含運費與稅金；來自訂單詳細頁，D-022）；undefined = 尚未取得，null = 詳細頁沒有對應資料 */
+  lineTotal?: number | null;
 }
 
 export interface Order {
@@ -55,6 +57,14 @@ export interface ProductInfo {
   productId: number;
   handle: string;
   variants: { id: number; title: string }[];
+  /** 品牌名稱（D-022）；舊資料沒有此欄位，同步時重新取得 */
+  vendor?: string;
+  /** `Talent_` 標籤（去掉前綴） */
+  talents?: string[];
+  /** `Group_` 標籤（去掉前綴） */
+  groups?: string[];
+  /** `Generation_` 標籤（去掉前綴） */
+  generations?: string[];
   fetchedAt: string;
 }
 

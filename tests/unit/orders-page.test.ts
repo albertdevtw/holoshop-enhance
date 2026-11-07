@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseItemName, parseOrdersPage, parseShipBy, statusFromBadge } from '@/src/site-adapter/orders-page';
-import { parseOrderDetail } from '@/src/site-adapter/order-detail';
+import { parseOrderDetail, parsePriceText } from '@/src/site-adapter/order-detail';
 import { loadFixture } from './fixtures';
 
 describe('parseOrdersPage', () => {
@@ -85,8 +85,8 @@ describe('statusFromBadge', () => {
 describe('parseOrderDetail', () => {
   it('取得 handle、variant ID、規格與數量', () => {
     expect(parseOrderDetail(loadFixture('order-detail.html'))).toEqual([
-      { handle: 'sample_set_2026', variantId: 3000000001, variantTitle: 'セット / フルセット（旧名称）', quantity: 2 },
-      { handle: 'sample_single', variantId: 3000000009, variantTitle: null, quantity: 1 },
+      { handle: 'sample_set_2026', variantId: 3000000001, variantTitle: 'セット / フルセット（旧名称）', quantity: 2, lineTotal: 2346 },
+      { handle: 'sample_single', variantId: 3000000009, variantTitle: null, quantity: 1, lineTotal: 500 },
     ]);
   });
 });
@@ -109,5 +109,15 @@ describe('parseShipBy', () => {
     expect(parseShipBy('未定')).toEqual({ text: '未定', date: null });
     expect(parseShipBy('2026年13月')?.date).toBeNull();
     expect(parseShipBy('   ')).toBeNull();
+  });
+});
+
+describe('parsePriceText', () => {
+  it('各種金額格式', () => {
+    expect(parsePriceText('$9,999.99 TWD')).toBe(9999.99);
+    expect(parsePriceText('NT$2,346.00')).toBe(2346);
+    expect(parsePriceText('¥12,000')).toBe(12000);
+    expect(parsePriceText('')).toBeNull();
+    expect(parsePriceText(null)).toBeNull();
   });
 });

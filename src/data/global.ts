@@ -29,6 +29,12 @@ export interface Settings {
     /** 商品列表自動載入更多（F10） */
     autoLoadMore: boolean;
   };
+  stats: {
+    /** 統計的合計幣別（F13） */
+    baseCurrency: string;
+    /** 使用者自訂匯率：1 單位該幣別 = N JPY；未自訂的幣別使用內建預設值 */
+    rates: Record<string, number>;
+  };
 }
 
 export interface GlobalState {
@@ -46,6 +52,7 @@ export function defaultSettings(): Settings {
     list: { showExpired: false },
     sync: { showOnIcon: true },
     collection: { autoLoadMore: true },
+    stats: { baseCurrency: 'JPY', rates: {} },
   };
 }
 
@@ -79,6 +86,10 @@ export function migrateGlobalState(raw: unknown): GlobalState {
       list: { ...base.settings.list, ...settings.list },
       sync: { ...base.settings.sync, ...settings.sync },
       collection: { ...base.settings.collection, ...settings.collection },
+      stats: {
+        baseCurrency: settings.stats?.baseCurrency ?? base.settings.stats.baseCurrency,
+        rates: { ...settings.stats?.rates },
+      },
     },
   };
 }

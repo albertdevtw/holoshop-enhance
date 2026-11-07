@@ -130,13 +130,13 @@ async function handleMessage(message: Message, sender: Sender): Promise<Response
       };
     }
 
-    case 'listUnfulfilledOrders': {
+    case 'listOrders': {
       const { activeAccountId } = await getGlobalState();
-      if (!activeAccountId) return { customerId: null, orders: [] };
-      const orders = await openUserDb(activeAccountId)
-        .orders.filter((o) => o.status === 'unfulfilled')
-        .toArray();
-      return { customerId: activeAccountId, orders };
+      if (!activeAccountId) return { customerId: null, orders: [], products: [] };
+      const orders = await openUserDb(activeAccountId).orders.toArray();
+      const ids = [...new Set(orders.flatMap((o) => o.productIds))];
+      const products = (await openSharedDb().products.bulkGet(ids)).filter((p) => p !== undefined);
+      return { customerId: activeAccountId, orders, products };
     }
 
     case 'syncClaim':
@@ -343,5 +343,6 @@ function mergeSettings(current: Settings, patch: Partial<Settings>): Settings {
     list: { ...current.list, ...patch.list },
     sync: { ...current.sync, ...patch.sync },
     collection: { ...current.collection, ...patch.collection },
+    stats: { ...current.stats, ...patch.stats },
   };
 }
